@@ -2,103 +2,125 @@
 
 # KageTarget
 
-Fast browser-native web reconnaissance from a Chrome extension. KageTarget provides user-initiated inspection of the active page or an explicitly supplied HTTP(S) target through a compact Action Popup, with an optional Side Panel workspace.
+<p align="center">
+  <strong>Tarayıcı içinde hızlı ve yerel web keşfi.</strong><br>
+  <em>Fast, local web reconnaissance inside your browser.</em>
+</p>
 
-## Preview
+<p align="center"><a href="#türkçe">Türkçe</a> · <a href="#english">English</a></p>
 
-| Compact Action Popup | Technology Detection |
+## Görseller / Screenshots
+
+| Genel Bakış / Overview | Teknoloji / Technology |
 |---|---|
-| ![KageTarget top navigation](docs/images/v36-top-nav-overview.png) | ![KageTarget technology detection](docs/images/v36-technology-working.png) |
+| ![KageTarget top navigation overview](docs/images/v36-top-nav-overview.png) | ![KageTarget technology detection](docs/images/v36-technology-working.png) |
 
-![KageTarget Admin Surface Discovery progress](docs/images/v36-progress-running.png)
+| Ayarlar / Settings | Tarama İlerlemesi / Scan Progress |
+|---|---|
+| ![KageTarget settings](docs/images/v36-settings-open.png) | ![KageTarget scan progress](docs/images/v36-progress-running.png) |
 
-The toolbar mark is optically sized for every supported Chrome icon size:
+## Türkçe
 
-![KageTarget icon preview](docs/images/icon-preview.png)
+KageTarget, Chrome için geliştirilmiş yerel bir web keşif eklentisidir. Açık sekmeyi veya elle girdiğiniz bir HTTP(S) adresini analiz eder. Ana arayüz kompakt Chrome popup’ıdır; isteğe bağlı Side Panel desteği de vardır.
 
-## Features
+### Özellikler
 
-- Quick Snapshot for title, canonical metadata, robots directives, generator, links, scripts, forms, and iframes
-- HTTP Headers, Security Headers, and CSP Inspector
-- Explicit checks for robots.txt, security.txt, and sitemap.xml
-- Links, Resources, Forms, and Advanced Technology Detection
-- URL Inspector, tested IPv4 Subnet Calculator, and Admin Surface Discovery
-- Compact target workflow and accessible Manual Target modal
-- Target Focus Mode that collapses the locked target after successful analysis
-- Compact top-shell navigation and a structured settings control surface
-- Theme-matched Admin Surface progress with clear completion metadata and cancellation
-- Reliable Technology analysis that combines page evidence with response headers and exposes retryable errors
-- Locally packaged Chakra Petch typography and first-run optional access onboarding
-- Optional Side Panel, English/Turkish UI, Clear Session, and Clear All
+- Sayfa başlığı, canonical, robots, generator, bağlantı, script, form ve iframe özeti
+- HTTP ve güvenlik başlıkları ile CSP inceleme
+- `robots.txt`, `security.txt` ve `sitemap.xml` kontrolü
+- Bağlantı, kaynak ve form listeleri
+- Kanıtlarıyla birlikte teknoloji algılama
+- URL inceleyici ve IPv4 alt ağ hesaplayıcı
+- Aynı kaynaktaki 24 yaygın yönetim/giriş yolunu kontrollü inceleme
+- Manuel hedef, Focus Mode, Türkçe/İngilizce arayüz ve isteğe bağlı Side Panel
 
-## Usage
+### Kullanım
 
-1. Open a normal HTTP(S) website.
-2. Click the KageTarget toolbar icon.
-3. On first use, enable the optional website access required for direct HTTP(S) reconnaissance, or continue in limited mode.
-4. KageTarget detects the active tab.
-5. Click **Analyze**.
-6. Select Snapshot, Web, Page, or Utils.
+1. Normal bir HTTP veya HTTPS sitesi açın.
+2. Chrome araç çubuğundaki KageTarget simgesine tıklayın.
+3. İlk kullanımda isteğe bağlı site erişimini açın veya sınırlı modda devam edin.
+4. **Analiz Et** düğmesine basın.
+5. Üst menüden **Özet**, **Web**, **Sayfa** veya **Araçlar** bölümünü seçin.
 
-**Manual Target** lets a researcher inspect another explicit HTTP(S) target without changing the open tab. Live mode reads bounded metadata from the rendered page. Remote mode makes a credential-free request and parses up to 512 KB of HTML as an inert static document; it is labeled **STATIC HTML**.
+Başka bir adresi incelemek için **Manuel Hedef** seçeneğini kullanabilirsiniz. Ağ kontrolleri kimlik bilgisi göndermez.
 
-After successful analysis, Target Focus Mode converts the expanded target panel into a compact locked-target bar. A single-row segmented category bar and compact tool tabs expose results earlier while preserving expand and Manual Target controls. Focus feedback uses only restrained color, border, and opacity transitions and respects reduced-motion preferences.
+### Kaynaktan kurulum
 
-## Technology detection
+```bash
+npm install
+npm run build
+```
 
-KageTarget combines response headers, page metadata, resource paths, and DOM evidence to identify web technologies. Its independent, local signature engine provides confidence and expandable evidence for every detection; target scripts are never loaded or executed by the extension.
+Ardından:
 
-## Admin Surface Discovery
+1. Chrome’da `chrome://extensions` adresini açın.
+2. **Geliştirici modu**nu etkinleştirin.
+3. **Paketlenmemiş öğe yükle** seçeneğine tıklayın.
+4. Projedeki `dist/` klasörünü seçin.
 
-Admin Surface Discovery checks a small predefined set of 24 common administration and login paths after explicit user action. It is same-origin, credential-free, concurrency-bounded, and uses a soft-404 baseline. It does not perform authentication attempts, recursive enumeration, or brute forcing.
+### Gizlilik ve güvenli kullanım
 
-## Privacy
+KageTarget hesap, reklam, analytics, telemetri veya backend kullanmaz. Sonuçlar bellekte tutulur; yalnızca dil ve sınırlı mod tercihleri yerel olarak saklanır. Aracı sadece sahibi olduğunuz veya test izniniz bulunan sistemlerde kullanın.
 
-KageTarget has no account, analytics, telemetry, advertising, backend service, or persistent scan history. Scan results remain in memory. The language preference is stored locally. User-triggered network checks communicate directly with the selected target and omit credentials.
+[Gizlilik Politikası](docs/PRIVACY_POLICY.md) · [İzin Açıklaması](docs/PERMISSIONS.md)
 
-See the [Privacy Policy](docs/PRIVACY_POLICY.md) and [Permission Rationale](docs/PERMISSIONS.md).
+---
 
-## Install from source
+## English
 
-1. Run `npm install` and `npm run build`.
-2. Open `chrome://extensions`.
-3. Enable Developer Mode.
-4. Choose **Load unpacked**.
-5. Select the generated `dist/` directory.
+KageTarget is a local web reconnaissance extension for Chrome. It analyzes the active tab or an HTTP(S) address you enter manually. Its primary interface is a compact Chrome popup, with an optional Side Panel.
+
+### Features
+
+- Quick summary of title, canonical, robots, generator, links, scripts, forms, and iframes
+- HTTP headers, security headers, and CSP inspection
+- Checks for `robots.txt`, `security.txt`, and `sitemap.xml`
+- Link, resource, and form listings
+- Technology detection with visible evidence
+- URL inspector and IPv4 subnet calculator
+- Controlled checks for 24 common same-origin admin and login paths
+- Manual targets, Focus Mode, English/Turkish UI, and an optional Side Panel
+
+### Usage
+
+1. Open a normal HTTP or HTTPS website.
+2. Click the KageTarget icon in the Chrome toolbar.
+3. On first use, enable optional site access or continue in limited mode.
+4. Click **Analyze**.
+5. Choose **Snapshot**, **Web**, **Page**, or **Utils** from the top navigation.
+
+Use **Manual Target** to inspect another address. Network checks never send credentials.
+
+### Install from source
+
+```bash
+npm install
+npm run build
+```
+
+Then:
+
+1. Open `chrome://extensions`.
+2. Enable **Developer mode**.
+3. Click **Load unpacked**.
+4. Select the project’s `dist/` directory.
+
+### Privacy and responsible use
+
+KageTarget has no account, advertising, analytics, telemetry, or backend. Results stay in memory; only language and limited-mode preferences are stored locally. Use it only on systems you own or are authorized to test.
+
+[Privacy Policy](docs/PRIVACY_POLICY.md) · [Permission Rationale](docs/PERMISSIONS.md)
 
 ## Development
 
 ```bash
-npm install
-npm run dev
 npm run typecheck
 npm run lint
 npm run test
 npm run test:e2e
-npm run build
 npm run package
 ```
 
-`npm run package` creates `release/kagetarget-3.6.0.zip` with `manifest.json` at the archive root.
+`npm run package` creates `release/kagetarget-3.6.0.zip`.
 
-## Architecture
-
-- Chrome Manifest V3 with Action Popup as the primary interface
-- Optional Side Panel using the same React application
-- Strict TypeScript, React, Vite, Vitest, and a Puppeteer Chrome harness
-- In-memory scan state and local-only language preference
-- Central target parser, permission boundary, DOM extraction, and network policy
-- Explicit direct requests using `credentials: "omit"` and `cache: "no-store"`
-
-## Limitations
-
-- Restricted browser pages cannot be inspected.
-- Browser security policies can affect readable network responses.
-- Technology detection is heuristic and intentionally conservative.
-- Native toolbar interaction may require manual validation because browser automation cannot reliably click Chrome toolbar actions.
-
-## Ethical use
-
-Use KageTarget only on systems you own or are authorized to test.
-
-Chrome Web Store preparation details are documented in [Store Readiness](docs/STORE_READINESS.md). A license has not yet been selected.
+Chrome Web Store preparation details are available in [Store Readiness](docs/STORE_READINESS.md).
