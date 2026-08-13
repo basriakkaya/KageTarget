@@ -1,8 +1,8 @@
 # Chrome Web Store readiness
 
 - [x] Single purpose documented
-- [x] Manifest V3 and Side Panel primary UI
-- [x] No action popup or normal-tab application launcher
+- [x] Manifest V3 with Action Popup primary UI and optional Side Panel
+- [x] Compact user-initiated reconnaissance workflow
 - [x] Permissions minimized and documented
 - [x] Privacy policy prepared
 - [x] No remote executable code or remote assets

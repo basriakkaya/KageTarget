@@ -7,3 +7,5 @@
 - Optional `http://*/*` and `https://*/*`: request access at runtime for the single selected origin when the user runs a direct HTTP(S) check.
 
 KageTarget does not request history, cookies, bookmarks, browsing data, downloads, debugger, proxy, management, native messaging, or clipboard-read access.
+
+Version 3.2 requires no additional permissions. Admin Surface Discovery reuses optional access to the user-selected HTTP(S) origin, and Technology Detection uses already available page and response metadata.

@@ -6,9 +6,11 @@ Fast browser-native web reconnaissance from a Chrome extension. KageTarget provi
 
 ## Preview
 
-| Action Popup | Settings |
+| Compact Action Popup | Technology Detection |
 |---|---|
-| ![KageTarget popup](docs/images/popup-overview.png) | ![KageTarget settings](docs/images/settings.png) |
+| ![KageTarget compact popup](docs/images/v32-overview.png) | ![KageTarget technology detection](docs/images/v32-technology.png) |
+
+![KageTarget Admin Surface Discovery](docs/images/v32-admin-surface.png)
 
 The toolbar mark is optically sized for every supported Chrome icon size:
 
@@ -19,9 +21,9 @@ The toolbar mark is optically sized for every supported Chrome icon size:
 - Quick Snapshot for title, canonical metadata, robots directives, generator, links, scripts, forms, and iframes
 - HTTP Headers, Security Headers, and CSP Inspector
 - Explicit checks for robots.txt, security.txt, and sitemap.xml
-- Links, Resources, Forms, and evidence-based Technology Hints
-- URL Inspector and tested IPv4 Subnet Calculator
-- Manual HTTP(S) Target with bounded static HTML inspection
+- Links, Resources, Forms, and Advanced Technology Detection
+- URL Inspector, tested IPv4 Subnet Calculator, and Admin Surface Discovery
+- Compact target workflow and accessible Manual Target modal
 - Optional Side Panel, English/Turkish UI, Clear Session, and Clear All
 
 ## Usage
@@ -33,6 +35,14 @@ The toolbar mark is optically sized for every supported Chrome icon size:
 5. Select Snapshot, Web, Page, or Utils.
 
 **Manual Target** lets a researcher inspect another explicit HTTP(S) target without changing the open tab. Live mode reads bounded metadata from the rendered page. Remote mode makes a credential-free request and parses up to 512 KB of HTML as an inert static document; it is labeled **STATIC HTML**.
+
+## Technology detection
+
+KageTarget combines response headers, page metadata, resource paths, and DOM evidence to identify web technologies. Its independent, local signature engine provides confidence and expandable evidence for every detection; target scripts are never loaded or executed by the extension.
+
+## Admin Surface Discovery
+
+Admin Surface Discovery checks a small predefined set of 24 common administration and login paths after explicit user action. It is same-origin, credential-free, concurrency-bounded, and uses a soft-404 baseline. It does not perform authentication attempts, recursive enumeration, or brute forcing.
 
 ## Privacy
 
@@ -61,7 +71,7 @@ npm run build
 npm run package
 ```
 
-`npm run package` creates `release/kagetarget-3.1.1.zip` with `manifest.json` at the archive root.
+`npm run package` creates `release/kagetarget-3.2.0.zip` with `manifest.json` at the archive root.
 
 ## Architecture
 
