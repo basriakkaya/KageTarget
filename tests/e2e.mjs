@@ -128,11 +128,12 @@ try {
   await layoutPage.evaluateOnNewDocument((fixtureOrigin) => {
     const pageData = { snapshot:{url:`${fixtureOrigin}/`,title:"KageTarget Fixture",canonical:`${fixtureOrigin}/canonical`,robots:"index, follow",generator:"WordPress 6.8",links:1,scripts:2,forms:1,iframes:0},links:[],resources:[{kind:"script",url:`${fixtureOrigin}/_next/static/app.js`,details:"classic"},{kind:"script",url:`${fixtureOrigin}/wp-content/plugins/test/app.js`,details:"classic"},{kind:"stylesheet",url:`${fixtureOrigin}/wp-includes/css/test.css`,details:"stylesheet"}],forms:[],markers:["__NEXT_DATA__"],limited:false };
     Object.defineProperty(globalThis.chrome.tabs,"query",{value:async()=>[{id:77,url:`${fixtureOrigin}/`,active:true}]});
-    Object.defineProperty(globalThis.chrome.scripting,"executeScript",{value:async()=>[{result:pageData}]});
+    const emptyPageData={...pageData,snapshot:{...pageData.snapshot,generator:null},resources:[],markers:[]};
+    Object.defineProperty(globalThis.chrome.scripting,"executeScript",{value:async()=>[{result:globalThis.__ktEmptyTechnology?emptyPageData:pageData}]});
     Object.defineProperty(globalThis.chrome.permissions,"contains",{value:async()=>true});
     Object.defineProperty(globalThis.chrome.permissions,"request",{value:async()=>true});
     const make=(url,status,body,final=url)=>{const response=new Response(body,{status,headers:{"content-type":"text/html",server:"nginx/1.27.0","cf-ray":"fixture"}});Object.defineProperty(response,"url",{value:final});return response};
-    globalThis.fetch=async(input,init)=>{const url=String(input),path=new URL(url).pathname;if(init?.method==="HEAD")return make(url,path.startsWith("/.kagetarget")?404:path.startsWith("/administrator")?403:404,"");if(path.startsWith("/.kagetarget"))return make(url,404,"");if(path==="/admin"||path==="/admin/"||path.startsWith("/admin/login"))return make(url,200,'<title>Administration Login</title><form><input type="password"></form>');if(path.startsWith("/administrator"))return make(url,403,"");if(path==="/login")return make(url,200,"<title>Sign in</title>",`${fixtureOrigin}/auth/signin`);return make(url,404,"")};
+    globalThis.fetch=async(input,init)=>{const url=String(input),path=new URL(url).pathname;if(init?.method==="HEAD"){await new Promise(resolve=>setTimeout(resolve,25));if(globalThis.__ktTechnologyFailure&&path==="/")throw new Error("technology fixture failure");return make(url,path.startsWith("/.kagetarget")?404:path.startsWith("/administrator")?403:404,"")}if(path.startsWith("/.kagetarget"))return make(url,404,"");if(path==="/admin"||path==="/admin/"||path.startsWith("/admin/login"))return make(url,200,'<title>Administration Login</title><form><input type="password"></form>');if(path.startsWith("/administrator"))return make(url,403,"");if(path==="/login")return make(url,200,"<title>Sign in</title>",`${fixtureOrigin}/auth/signin`);return make(url,404,"")};
   }, `http://127.0.0.1:${port}`);
   await worker.worker().then((context) => context.evaluate(async () => globalThis.chrome.storage.local.set({ language: "en" })));
   await layoutPage.setViewport({width:740,height:570});
@@ -141,7 +142,7 @@ try {
   assert.equal(await layoutPage.$(".activation-view"),null,"already granted users skip onboarding");
   await layoutPage.waitForFunction(() => document.querySelector(".target-card h1")?.textContent?.includes("127.0.0.1"));
   await layoutPage.click(".manual-toggle");await layoutPage.waitForSelector(".manual-dialog input");const inputFont=await layoutPage.$eval(".manual-dialog input",element=>getComputedStyle(element).fontFamily);assert.ok(/Chakra Petch/.test(inputFont));await layoutPage.keyboard.press("Escape");
-  await layoutPage.click('.head-actions button[aria-label="Settings"]');await layoutPage.waitForSelector(".settings label");const settingsFont=await layoutPage.$eval(".settings label",element=>getComputedStyle(element).fontFamily);assert.ok(/Chakra Petch/.test(settingsFont));await layoutPage.click(".settings .close");
+  await layoutPage.click('.head-actions button[aria-label="Settings"]');await layoutPage.waitForSelector(".settings label");const settingsFont=await layoutPage.$eval(".settings label",element=>getComputedStyle(element).fontFamily);assert.ok(/Chakra Petch/.test(settingsFont));assert.equal(await layoutPage.$$eval(".settings-section",items=>items.length),5);const settingsGeometry=await layoutPage.$eval(".settings",element=>{const rect=element.getBoundingClientRect();return{width:rect.width,right:rect.right,overflow:element.scrollWidth>element.clientWidth}});assert.ok(settingsGeometry.width<=360);assert.equal(settingsGeometry.right,740);assert.equal(settingsGeometry.overflow,false);await layoutPage.screenshot({path:"artifacts/e2e/v36-settings-open.png"});await layoutPage.keyboard.press("Escape");await layoutPage.waitForSelector(".settings",{hidden:true});
   const uiFonts=await layoutPage.evaluate(()=>["body",".target-card h1",".categories button",".tool-title h2",".target-card .primary"].map(selector=>getComputedStyle(document.querySelector(selector)).fontFamily));assert.equal(uiFonts.every(value=>/Chakra Petch/.test(value)),true);
   const expandedGeometry = await layoutPage.evaluate(() => { const target=document.querySelector(".target-card").getBoundingClientRect(),nav=document.querySelector(".categories").getBoundingClientRect(),content=document.querySelector(".tool-content").getBoundingClientRect();return{targetHeight:target.height,targetBottom:target.bottom,navTop:nav.top,navBottom:nav.bottom,contentTop:content.top,contentHeight:content.height,overflow:document.body.scrollWidth>document.body.clientWidth}});
   assert.equal(expandedGeometry.overflow,false);
@@ -150,7 +151,7 @@ try {
   await layoutPage.waitForSelector(".metrics");
   await layoutPage.waitForSelector(".target-focus-bar.collapsed");
   const collapsedGeometry = await layoutPage.evaluate(() => { const target=document.querySelector(".target-focus-bar").getBoundingClientRect(),nav=document.querySelector(".categories").getBoundingClientRect(),content=document.querySelector(".tool-content").getBoundingClientRect();return{targetHeight:target.height,targetBottom:target.bottom,navTop:nav.top,navBottom:nav.bottom,contentTop:content.top,contentHeight:content.height,overflow:document.body.scrollWidth>document.body.clientWidth,aria:document.querySelector(".focus-identity").getAttribute("aria-expanded")}});
-  assert.ok(collapsedGeometry.targetHeight<expandedGeometry.targetHeight); assert.ok(collapsedGeometry.contentHeight>expandedGeometry.contentHeight); assert.ok(collapsedGeometry.navTop>=collapsedGeometry.targetBottom-1); assert.ok(collapsedGeometry.contentTop>=collapsedGeometry.navBottom-1); assert.equal(collapsedGeometry.overflow,false); assert.equal(collapsedGeometry.aria,"false");
+  assert.ok(collapsedGeometry.targetHeight<expandedGeometry.targetHeight); assert.ok(collapsedGeometry.contentHeight>expandedGeometry.contentHeight); assert.ok(collapsedGeometry.navBottom<=collapsedGeometry.targetBottom); assert.ok(collapsedGeometry.contentTop>=collapsedGeometry.targetBottom-1); assert.equal(collapsedGeometry.overflow,false); assert.equal(collapsedGeometry.aria,"false");
   const density = await layoutPage.evaluate(() => {
     const nav=document.querySelector(".categories").getBoundingClientRect();
     const subnav=document.querySelector(".tool-strip").getBoundingClientRect();
@@ -178,25 +179,38 @@ try {
   await layoutPage.screenshot({ path: "artifacts/e2e/v34-focus-mode-font.png" });
   await layoutPage.screenshot({ path: "artifacts/e2e/v32-overview.png" });
   await layoutPage.screenshot({ path: "artifacts/e2e/v35-overview.png" });
+  await layoutPage.screenshot({ path: "artifacts/e2e/v36-top-nav-overview.png" });
 
   await layoutPage.focus("#category-tab-snapshot");
   await layoutPage.keyboard.press("ArrowRight");
   await layoutPage.waitForFunction(()=>document.querySelector('#category-tab-web')?.getAttribute('aria-selected')==='true');
   assert.equal(await layoutPage.evaluate(()=>document.activeElement?.id),"category-tab-web");
   await layoutPage.screenshot({ path: "artifacts/e2e/v35-web.png" });
+  await layoutPage.screenshot({ path: "artifacts/e2e/v36-top-nav-web.png" });
 
   await layoutPage.click("#category-tab-page");
   await layoutPage.evaluate(() => document.querySelectorAll(".tool-strip button")[3]?.click());
   await layoutPage.waitForSelector(".technology-card");
   assert.ok(await layoutPage.$$eval(".technology-card", (items) => items.length >= 2));
+  assert.ok(await layoutPage.$$eval(".technology-card details li",items=>items.length>=2));
+  await layoutPage.click(".technology-card summary");
   await layoutPage.screenshot({ path: "artifacts/e2e/v32-technology.png" });
   await layoutPage.screenshot({ path: "artifacts/e2e/v35-page.png" });
+  await layoutPage.screenshot({ path: "artifacts/e2e/v36-top-nav-page.png" });
+  await layoutPage.screenshot({ path: "artifacts/e2e/v36-technology-working.png" });
+  await layoutPage.evaluate(()=>{globalThis.__ktEmptyTechnology=true;globalThis.__ktTechnologyFailure=true});
+  await layoutPage.click(".focus-action");await layoutPage.waitForSelector(".target-expanded");await layoutPage.click(".target-card .primary");await layoutPage.waitForSelector(".target-focus-bar.collapsed");
+  await layoutPage.evaluate(() => document.querySelectorAll(".tool-strip button")[3]?.click());await layoutPage.waitForSelector(".technology-state.error");assert.ok(await layoutPage.$(".technology-state .secondary-action"));
+  await layoutPage.evaluate(()=>{globalThis.__ktTechnologyFailure=false});await layoutPage.click(".technology-state .secondary-action");await layoutPage.waitForSelector(".technology-card");
 
   await layoutPage.click("#category-tab-utils");
   await layoutPage.screenshot({ path: "artifacts/e2e/v35-tools.png" });
+  await layoutPage.screenshot({ path: "artifacts/e2e/v36-top-nav-tools.png" });
   await layoutPage.evaluate(() => document.querySelectorAll(".tool-strip button")[2]?.click());
   await layoutPage.waitForSelector(".admin-intro");
   await layoutPage.click(".admin-intro .run");
+  await layoutPage.waitForSelector(".progress-panel.running");await layoutPage.waitForFunction(()=>{const value=Number(document.querySelector('.progress-track')?.getAttribute('aria-valuenow'));return value>0&&value<24});await layoutPage.screenshot({path:"artifacts/e2e/v36-progress-running.png"});
+  await layoutPage.click(".progress-panel .secondary-action");await layoutPage.waitForSelector(".progress-panel.cancelled");assert.ok((await layoutPage.$eval(".progress-panel",element=>element.textContent))?.includes("cancelled"));await layoutPage.click(".progress-panel .secondary-action");
   await layoutPage.waitForFunction(() => document.querySelectorAll(".admin-result").length === 24, { timeout: 20_000 });
   const adminClasses = await layoutPage.$$eval(".admin-result .status", (items) => items.map((item) => item.textContent));
   assert.ok(adminClasses.includes("LIKELY")); assert.ok(adminClasses.includes("PROTECTED")); assert.ok(adminClasses.includes("REDIRECT")); assert.ok(adminClasses.includes("NOT_FOUND"));
@@ -217,12 +231,14 @@ try {
   await layoutPage.screenshot({ path: "artifacts/e2e/v34-main-tr.png" });
   await layoutPage.screenshot({ path: "artifacts/e2e/v32-turkish.png" });
   await layoutPage.screenshot({ path: "artifacts/e2e/v35-turkish.png" });
+  await layoutPage.screenshot({ path: "artifacts/e2e/v36-turkish.png" });
   await layoutPage.evaluate(()=>{document.documentElement.dataset.surface="sidepanel"});
   for(const [width,height] of [[320,560],[360,560],[420,560],[520,570],[640,570],[740,570],[800,600]]) {
     await layoutPage.setViewport({width,height});
-    const responsive=await layoutPage.evaluate(()=>{const target=document.querySelector(".target-focus-bar").getBoundingClientRect(),nav=document.querySelector(".categories").getBoundingClientRect(),subnav=document.querySelector(".tool-strip").getBoundingClientRect();return{overflow:document.documentElement.scrollWidth>document.documentElement.clientWidth,targetBottom:target.bottom,navTop:nav.top,navHeight:nav.height,subnavHeight:subnav.height,labels:[...document.querySelectorAll(".categories button")].every(item=>item.scrollWidth<=item.clientWidth),buttons:[...document.querySelectorAll(".target-focus-bar button")].every(item=>item.getBoundingClientRect().width>0)}});
-    assert.equal(responsive.overflow,false,`horizontal overflow at ${width}`);assert.ok(responsive.navTop>=responsive.targetBottom-1);assert.ok(responsive.navHeight<=56);assert.ok(responsive.subnavHeight<=44);assert.equal(responsive.labels,true,`category label clipping at ${width}`);assert.equal(responsive.buttons,true);
-    if(width===320) await layoutPage.screenshot({path:"artifacts/e2e/v35-narrow.png"});
+    const responsive=await layoutPage.evaluate(()=>{const target=document.querySelector(".target-focus-bar").getBoundingClientRect(),nav=document.querySelector(".categories").getBoundingClientRect(),subnav=document.querySelector(".tool-strip").getBoundingClientRect();return{overflow:document.documentElement.scrollWidth>document.documentElement.clientWidth,targetTop:target.top,navBottom:nav.bottom,navHeight:nav.height,subnavHeight:subnav.height,labels:[...document.querySelectorAll(".categories button")].every(item=>item.scrollWidth<=item.clientWidth),buttons:[...document.querySelectorAll(".target-focus-bar button")].every(item=>item.getBoundingClientRect().width>0)}});
+    assert.equal(responsive.overflow,false,`horizontal overflow at ${width}`);assert.ok(responsive.navBottom<=responsive.targetTop+1);assert.ok(responsive.navHeight<=52);assert.ok(responsive.subnavHeight<=38);assert.equal(responsive.labels,true,`category label clipping at ${width}`);assert.equal(responsive.buttons,true);
+    await layoutPage.click(".head-actions button:last-child");await layoutPage.waitForSelector(".settings");const drawer=await layoutPage.$eval(".settings",element=>{const rect=element.getBoundingClientRect();return{left:rect.left,right:rect.right,width:rect.width,overflow:element.scrollWidth>element.clientWidth}});assert.ok(drawer.left>=0&&drawer.right<=width);assert.equal(drawer.overflow,false);await layoutPage.keyboard.press("Escape");await layoutPage.waitForSelector(".settings",{hidden:true});
+    if(width===320){await layoutPage.screenshot({path:"artifacts/e2e/v35-narrow.png"});await layoutPage.screenshot({path:"artifacts/e2e/v36-narrow.png"});}
   }
   await layoutPage.setViewport({width:740,height:570});
   await layoutPage.evaluate(() => {
@@ -250,8 +266,8 @@ try {
       contentOverflow: getComputedStyle(document.querySelector(".tool-content")).overflowY,
     };
   });
-  assert.ok(geometry.targetBottom <= geometry.navTop + 1);
-  assert.ok(geometry.navBottom <= geometry.contentTop + 1);
+  assert.ok(geometry.navBottom <= geometry.targetBottom);
+  assert.ok(geometry.targetBottom <= geometry.contentTop + 1);
   assert.ok(geometry.firstTop >= geometry.contentTop - 1);
   assert.equal(geometry.contentOverflow, "auto");
   await layoutPage.screenshot({ path: "artifacts/e2e/layout-page-top.png" });

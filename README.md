@@ -8,9 +8,9 @@ Fast browser-native web reconnaissance from a Chrome extension. KageTarget provi
 
 | Compact Action Popup | Technology Detection |
 |---|---|
-| ![KageTarget output-first popup](docs/images/v35-overview.png) | ![KageTarget technology detection](docs/images/v35-page.png) |
+| ![KageTarget top navigation](docs/images/v36-top-nav-overview.png) | ![KageTarget technology detection](docs/images/v36-technology-working.png) |
 
-![KageTarget Admin Surface Discovery](docs/images/v35-tools-admin.png)
+![KageTarget Admin Surface Discovery progress](docs/images/v36-progress-running.png)
 
 The toolbar mark is optically sized for every supported Chrome icon size:
 
@@ -25,6 +25,9 @@ The toolbar mark is optically sized for every supported Chrome icon size:
 - URL Inspector, tested IPv4 Subnet Calculator, and Admin Surface Discovery
 - Compact target workflow and accessible Manual Target modal
 - Target Focus Mode that collapses the locked target after successful analysis
+- Compact top-shell navigation and a structured settings control surface
+- Theme-matched Admin Surface progress with clear completion metadata and cancellation
+- Reliable Technology analysis that combines page evidence with response headers and exposes retryable errors
 - Locally packaged Chakra Petch typography and first-run optional access onboarding
 - Optional Side Panel, English/Turkish UI, Clear Session, and Clear All
 
@@ -76,7 +79,7 @@ npm run build
 npm run package
 ```
 
-`npm run package` creates `release/kagetarget-3.5.0.zip` with `manifest.json` at the archive root.
+`npm run package` creates `release/kagetarget-3.6.0.zip` with `manifest.json` at the archive root.
 
 ## Architecture
 

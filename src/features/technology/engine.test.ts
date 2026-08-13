@@ -8,4 +8,5 @@ describe("TechnologyEngine",()=>{
   it("detects Next.js from strong combined evidence",()=>expect(detectTechnologies({snapshot:snapshot(null),resources:resources("https://x.test/_next/static/app.js"),markers:["__NEXT_DATA__"]})).toContainEqual(expect.objectContaining({name:"Next.js",confidence:"High"})));
   it("detects Cloudflare and nginx from exact headers",()=>{const http={status:200,statusText:"OK",finalUrl:"https://x.test",headers:[["server","cloudflare"],["cf-ray","abc"]] as [string,string][]};expect(detectTechnologies({http}).find(x=>x.name==="Cloudflare")?.confidence).toBe("High");const nginx={...http,headers:[["server","nginx/1.27.0"]] as [string,string][]};expect(detectTechnologies({http:nginx})).toContainEqual(expect.objectContaining({name:"nginx",version:"1.27.0",confidence:"High"}))});
   it("does not detect React from a generic root id",()=>expect(detectTechnologies({snapshot:snapshot(null),markers:["id:root"]})).toEqual([]));
+  it("returns a true empty result when no supported evidence exists",()=>expect(detectTechnologies({snapshot:snapshot(null),resources:[],markers:[]})).toEqual([]));
 });

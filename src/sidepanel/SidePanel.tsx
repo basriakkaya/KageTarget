@@ -28,7 +28,7 @@ import {
 import { hasAllSiteAccess, requestFirstRunAccess, requestHostAccess, type PermissionState } from "../core/permissions";
 import { translate, type Language, type TranslationKey } from "../i18n";
 import { fetchRemotePage } from "../core/remote-page";
-import { detectTechnologies } from "../features/technology/engine";
+import { detectTechnologies, type TechnologyMatch } from "../features/technology/engine";
 import { ADMIN_PATHS, scanAdminSurfaces, type AdminResult } from "../features/admin/admin-surface";
 import { targetPanelTransition, type TargetPanelState } from "../features/target-focus/state";
 import { MainToolNavigation } from "./MainToolNavigation";
@@ -129,8 +129,13 @@ export function SidePanel() {
   const [targetPanelState, setTargetPanelState] = useState<TargetPanelState>("expanded");
   const [adminResults, setAdminResults] = useState<AdminResult[]>([]);
   const [adminProgress, setAdminProgress] = useState<[number, number]>([0, ADMIN_PATHS.length]);
+  const [adminStatus, setAdminStatus] = useState<"idle"|"running"|"completed"|"cancelled"|"error">("idle");
+  const [technologyStatus, setTechnologyStatus] = useState<"idle"|"running"|"completed"|"error">("idle");
+  const [technologyResults, setTechnologyResults] = useState<TechnologyMatch[]>([]);
+  const [technologyError, setTechnologyError] = useState("");
   const adminAbort = useRef<AbortController | null>(null);
   const manualDialog = useRef<HTMLDivElement | null>(null);
+  const settingsDialog = useRef<HTMLElement | null>(null);
   const op = useRef(0);
   const detect = async (initial = false) => {
     const next = await resolveActiveTarget();
@@ -187,6 +192,22 @@ export function SidePanel() {
     requestAnimationFrame(() => manualDialog.current?.querySelector<HTMLInputElement>("input")?.focus());
     return () => document.removeEventListener("keydown", key);
   }, [manual]);
+  useEffect(() => {
+    if (!settings) return;
+    const key = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setSettings(false);
+      if (event.key === "Tab") {
+        const items = [...(settingsDialog.current?.querySelectorAll<HTMLElement>('button,select') ?? [])];
+        if (!items.length) return;
+        const first=items[0],last=items[items.length-1];
+        if(event.shiftKey&&document.activeElement===first){event.preventDefault();last.focus()}
+        else if(!event.shiftKey&&document.activeElement===last){event.preventDefault();first.focus()}
+      }
+    };
+    document.addEventListener("keydown",key);
+    requestAnimationFrame(()=>settingsDialog.current?.querySelector<HTMLElement>("button")?.focus());
+    return()=>document.removeEventListener("keydown",key);
+  },[settings]);
   const activateAccess=async()=>{setAccessState("requesting");try{const granted=await requestFirstRunAccess();if(granted){await saveLimitedMode(false);setAccessState("ready");}else setAccessState("denied");}catch{setAccessState("error")}};
   const continueLimited=async()=>{await saveLimitedMode(true);setAccessState("limited")};
   const openSettings=async()=>{try{setAccessState((await hasAllSiteAccess())?"ready":(await loadLimitedMode())?"limited":"needs-activation");}catch{setAccessState("error")}setSettings(true)};
@@ -202,6 +223,10 @@ export function SidePanel() {
     adminAbort.current = null;
     setAdminResults([]);
     setAdminProgress([0, ADMIN_PATHS.length]);
+    setAdminStatus("idle");
+    setTechnologyStatus("idle");
+    setTechnologyResults([]);
+    setTechnologyError("");
   };
   const analyze = async (next = active) => {
     if (!next) {
@@ -305,11 +330,32 @@ export function SidePanel() {
     if (!target || loading) return;
     setError("");
     if (!(await permission())) { setError(t("permissionDenied")); return; }
-    const controller = new AbortController(); adminAbort.current = controller; setLoading(true); setAdminResults([]); setAdminProgress([0, ADMIN_PATHS.length]);
-    try { setAdminResults(await scanAdminSurfaces(target,{signal:controller.signal,onProgress:(done,total)=>setAdminProgress([done,total])})); }
-    catch { if (!controller.signal.aborted) setError(t("networkFailed")); }
+    const controller = new AbortController(); adminAbort.current = controller; setLoading(true); setAdminStatus("running"); setAdminResults([]); setAdminProgress([0, ADMIN_PATHS.length]);
+    try { setAdminResults(await scanAdminSurfaces(target,{signal:controller.signal,onProgress:(done,total)=>setAdminProgress([done,total])})); setAdminStatus("completed"); }
+    catch { if (controller.signal.aborted) setAdminStatus("cancelled"); else { setAdminStatus("error"); setError(t("networkFailed")); } }
     finally { if (adminAbort.current===controller) { adminAbort.current=null; setLoading(false); } }
   };
+  const cancelAdmin=()=>{adminAbort.current?.abort();setAdminStatus("cancelled")};
+  const runTechnology=async()=>{
+    if(!target||!page)return;
+    const requestedTarget=target.normalizedUrl,id=++op.current;
+    setTechnologyStatus("running");setTechnologyError("");
+    const pageMatches=detectTechnologies({snapshot:page.snapshot,resources:page.resources,markers:page.markers,http:http??undefined});
+    setTechnologyResults(pageMatches);
+    try{
+      if(!(await permission()))throw new Error("permission");
+      const headers=await fetchHead(target);
+      if(id!==op.current||target.normalizedUrl!==requestedTarget)return;
+      setHttp(headers);
+      setTechnologyResults(detectTechnologies({snapshot:page.snapshot,resources:page.resources,markers:page.markers,http:headers}));
+      setTechnologyStatus("completed");
+    }catch(error){
+      if(id!==op.current)return;
+      if(pageMatches.length){setTechnologyResults(pageMatches);setTechnologyStatus("completed");}
+      else {setTechnologyStatus("error");setTechnologyError(error instanceof Error&&error.message==="permission"?t("permissionDenied"):t("technologyFailed"));}
+    }
+  };
+  const selectTool=(nextTool:Tool)=>{setTool(nextTool);if(nextTool==="technology")void runTechnology()};
   const copy = (x: string) =>
     void navigator.clipboard.writeText(x).then(() => setToast(t("copied")));
   const changeLanguage = (x: Language) => {
@@ -342,13 +388,17 @@ export function SidePanel() {
   const tools = registry.filter((x) => x.category === category);
   return (
     <div className="panel">
-      <header>
+      <header className="top-shell">
         <div className="brand">
           <img src={logo} />
           <b>
             Kage<span>Target</span>
           </b>
         </div>
+        <MainToolNavigation active={category} label={t} onSelect={(nextCategory) => {
+          setCategory(nextCategory);
+          selectTool(registry.find((item) => item.category === nextCategory)!.id);
+        }} />
         <div className="head-actions">
           <button
             aria-label={t("language")}
@@ -425,10 +475,8 @@ export function SidePanel() {
             <button className="focus-action" aria-label={t("expand")} onClick={()=>setTargetPanelState("expanded")}>↗ {t("expand")}</button>
             <button className="focus-action" onClick={()=>setManual(true)}>+ {t("manualTarget")}</button>
           </section>}
-          <MainToolNavigation active={category} label={t} onSelect={(nextCategory) => {
-            setCategory(nextCategory);
-            setTool(registry.find((item) => item.category === nextCategory)!.id);
-          }} />
+        </div>
+        <div className="content-region">
           <div className="tool-strip" role="tablist" aria-label={`${t(category)} tools`}>
             {tools.map((x) => (
               <button
@@ -436,22 +484,21 @@ export function SidePanel() {
                 aria-controls="tool-content"
                 aria-selected={tool === x.id}
                 key={x.id}
-                onClick={() => setTool(x.id)}
+                onClick={() => selectTool(x.id)}
                 role="tab"
               >
                 {t(x.key)}
               </button>
             ))}
           </div>
-        </div>
         <section className="tool-content" id="tool-content" aria-live="polite">
           <div className="tool-title">
             <div>
               <span>&gt; {target?.hostname ?? "NO_TARGET"}</span>
               <h2>{t(registry.find((x) => x.id === tool)!.key)}</h2>
             </div>
-            <Badge className={loading ? "running" : ""}>
-              {loading
+            <Badge className={loading || (tool==="technology"&&technologyStatus==="running") ? "running" : ""}>
+              {loading || (tool==="technology"&&technologyStatus==="running")
                 ? t("running")
                 : error
                   ? t("error")
@@ -488,10 +535,16 @@ export function SidePanel() {
               runAdmin,
               adminResults,
               adminProgress,
-              cancelAdmin: () => adminAbort.current?.abort(),
+              adminStatus,
+              cancelAdmin,
+              technologyStatus,
+              technologyResults,
+              technologyError,
+              runTechnology,
             }}
           />
         </section>
+        </div>
       </main>
       {manual && (
         <div className="overlay manual-overlay" role="presentation" onMouseDown={() => setManual(false)}>
@@ -505,13 +558,10 @@ export function SidePanel() {
       )}
       {settings && (
         <div className="overlay" onMouseDown={() => setSettings(false)}>
-          <aside className="settings" onMouseDown={(e) => e.stopPropagation()}>
-            <button className="close" onClick={() => setSettings(false)}>
-              ×
-            </button>
-            <h2>{t("settings")}</h2>
-            <label>
-              {t("language")}
+          <aside className="settings" role="dialog" aria-modal="true" aria-labelledby="settings-title" ref={settingsDialog} onMouseDown={(e) => e.stopPropagation()}>
+            <div className="settings-header"><div><span>{t("controlSurface")}</span><h2 id="settings-title">{t("settings")}</h2></div><button className="close" aria-label={t("closeSettings")} onClick={() => setSettings(false)}>×</button></div>
+            <section className="settings-section"><div className="settings-section-title"><span>01</span><div><h3>{t("language")}</h3><p>{t("languageHint")}</p></div></div><label>
+              <span>{t("interfaceLanguage")}</span>
               <select
                 value={language}
                 onChange={(e) => changeLanguage(e.target.value as Language)}
@@ -519,19 +569,16 @@ export function SidePanel() {
                 <option value="en">English</option>
                 <option value="tr">Türkçe</option>
               </select>
-            </label>
-            <button onClick={() => void clearSessionNow()}>
+            </label></section>
+            <section className="settings-section"><div className="settings-section-title"><span>02</span><div><h3>{t("session")}</h3><p>{t("sessionHint")}</p></div></div><button onClick={() => void clearSessionNow()}>
               {t("clearSession")}
-            </button>
+            </button></section>
+            <section className="settings-section"><div className="settings-section-title"><span>03</span><div><h3>{t("data")}</h3><p>{t("dataHint")}</p></div></div>
             <button className="danger" onClick={() => setConfirm(true)}>
               {t("clearAll")}
-            </button>
-            <hr />
-            <h3>{t("access")}</h3><p>{t("hostAccess")}: <b>{accessState==="ready"?t("enabled"):t("notEnabled")}</b></p>{accessState!=="ready"&&<button onClick={()=>void activateAccess()}>{t("grantAccess")}</button>}
-            <hr />
-            <h3>{t("about")}</h3>
-            <p>{t("aboutText")}</p>
-            <small>{t("version")}</small>
+            </button></section>
+            <section className="settings-section"><div className="settings-section-title"><span>04</span><div><h3>{t("access")}</h3><p>{t("accessHint")}</p></div></div><div className="settings-state"><span>{t("hostAccess")}</span><Badge className={accessState==="ready"?"present":"missing"}>{accessState==="ready"?t("enabled"):t("notEnabled")}</Badge></div>{accessState!=="ready"&&<button onClick={()=>void activateAccess()}>{t("grantAccess")}</button>}</section>
+            <section className="settings-section settings-about"><div className="settings-section-title"><span>05</span><div><h3>{t("about")}</h3><p>{t("aboutText")}</p></div></div><small>{t("version")}</small><small>{t("privacySummary")}</small></section>
           </aside>
         </div>
       )}
@@ -575,7 +622,12 @@ type ViewProps = {
   runAdmin: () => Promise<void>;
   adminResults: AdminResult[];
   adminProgress: [number, number];
+  adminStatus: "idle"|"running"|"completed"|"cancelled"|"error";
   cancelAdmin: () => void;
+  technologyStatus: "idle"|"running"|"completed"|"error";
+  technologyResults: TechnologyMatch[];
+  technologyError: string;
+  runTechnology: () => Promise<void>;
 };
 function ToolView(p: ViewProps) {
   if (!p.target) return <Empty text={p.t("noTargetBody")} />;
@@ -756,10 +808,12 @@ function ToolView(p: ViewProps) {
       </>
     );
   if (p.tool === "technology") {
-    const hints = detectTechnologies({snapshot:p.page!.snapshot,resources:p.page!.resources,http:p.http??undefined,markers:p.page!.markers});
-    return hints.length ? (
+    if(p.technologyStatus==="running")return <Card className="technology-state"><div className="progress-status"><span>{p.t("technologyAnalyzing")}</span><Badge className="running">{p.t("running")}</Badge></div><p>{p.t("technologyAnalyzingHint")}</p><div className="indeterminate-track" aria-hidden="true"><span /></div></Card>;
+    if(p.technologyStatus==="error")return <Card className="technology-state error"><b>{p.t("technologyError")}</b><p>{p.technologyError}</p><button className="secondary-action" onClick={()=>void p.runTechnology()}>{p.t("retry")}</button></Card>;
+    if(p.technologyStatus==="idle")return <Card className="technology-state"><p>{p.t("technologyReady")}</p><button className="primary" onClick={()=>void p.runTechnology()}>{p.t("detectTechnology")}</button></Card>;
+    return p.technologyResults.length ? (
       <>
-        {hints.map((x) => (
+        {p.technologyResults.map((x) => (
           <Card key={x.id} className="technology-card">
             <div className="result-heading"><div><span>{x.category}</span><h3>{x.name}{x.version ? ` ${x.version}` : ""}</h3></div><Badge className={x.confidence.toLowerCase()}>{x.confidence}</Badge></div>
             <details><summary>{p.t("evidence")}</summary><ul>{x.evidence.map(item=><li key={item}>{item}</li>)}</ul></details>
@@ -772,7 +826,8 @@ function ToolView(p: ViewProps) {
   }
   if (p.tool === "admin-surface") {
     const counts=Object.fromEntries(["LIKELY","PROTECTED","REDIRECT","UNLIKELY","NOT_FOUND","ERROR"].map(x=>[x,p.adminResults.filter(y=>y.classification===x).length]));
-    return <><Card className="admin-intro"><p>{p.t("adminDescription")}</p><div className="safety">{p.t("adminSafety")}</div><div className="admin-facts"><span>{p.t("sameOrigin")}</span><span>{p.t("noAuth")}</span><span>{ADMIN_PATHS.length} {p.t("paths")}</span></div>{p.loading?<><progress value={p.adminProgress[0]} max={p.adminProgress[1]}/><p>{p.t("checking")} {p.adminProgress[0]} / {p.adminProgress[1]}</p><button onClick={p.cancelAdmin}>{p.t("cancel")}</button></>:<button className="primary run" onClick={()=>void p.runAdmin()}>{p.t("runCheck")}</button>}</Card>{p.adminResults.length>0&&<><div className="admin-summary">{Object.entries(counts).filter(([,count])=>count).map(([key,count])=><span key={key}>{key} <b>{count}</b></span>)}</div>{p.adminResults.map(result=><Card key={result.path} className="admin-result"><div className="result-heading"><h3>{result.path}</h3><Badge>{result.classification}</Badge></div><code>{result.status??"—"} {result.finalUrl}</code><p>{result.evidence.join(" · ")}</p></Card>)}</>}</>;
+    const done=p.adminProgress[0],total=p.adminProgress[1],percent=Math.round(done/total*100),remaining=Math.max(0,total-done);
+    return <><Card className={`admin-intro progress-panel ${p.adminStatus}`}><p>{p.t("adminDescription")}</p><div className="safety">{p.t("adminSafety")}</div><div className="admin-facts"><span>{p.t("sameOrigin")}</span><span>{p.t("noAuth")}</span><span>{ADMIN_PATHS.length} {p.t("paths")}</span></div>{p.adminStatus==="idle"?<button className="primary run" onClick={()=>void p.runAdmin()}>{p.t("runCheck")}</button>:<><div className="progress-status"><span>{p.adminStatus==="running"?p.t("scanRunning"):p.adminStatus==="completed"?p.t("scanCompleted"):p.adminStatus==="cancelled"?p.t("scanCancelled"):p.t("scanError")}</span><Badge className={p.adminStatus==="running"?"running":""}>{percent}%</Badge></div><div className="progress-track" role="progressbar" aria-label={p.t("scanProgress")} aria-valuemin={0} aria-valuemax={total} aria-valuenow={done}><span style={{width:`${percent}%`}} /></div><div className="progress-meta"><strong>{done} / {total} {p.t("complete")}</strong><span>{p.t("remaining")}: {remaining}</span></div>{p.adminStatus==="running"?<button className="secondary-action" onClick={p.cancelAdmin}>{p.t("cancel")}</button>:<button className="secondary-action" onClick={()=>void p.runAdmin()}>{p.t("runAgain")}</button>}</>}</Card>{p.adminResults.length>0&&<><div className="admin-summary">{Object.entries(counts).filter(([,count])=>count).map(([key,count])=><span key={key}>{key} <b>{count}</b></span>)}</div>{p.adminResults.map(result=><Card key={result.path} className="admin-result"><div className="result-heading"><h3>{result.path}</h3><Badge>{result.classification}</Badge></div><code>{result.status??"—"} {result.finalUrl}</code><p>{result.evidence.join(" · ")}</p></Card>)}</>}</>;
   }
   if (p.tool === "url") {
     const u = new URL(p.target.normalizedUrl);

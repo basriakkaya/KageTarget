@@ -1,5 +1,19 @@
 # Changelog
 
+## 3.6.0
+
+### Changed
+
+- Refined the app shell with compact primary navigation beside the brand and utility actions
+- Reduced the vertical footprint of secondary navigation and expanded the result viewport
+- Redesigned scan progress states with structured metadata, cancellation, and a theme-matched track
+- Rebuilt Settings as a structured, keyboard-accessible control surface
+
+### Fixed
+
+- Made Technology analysis actively combine page signals and response headers
+- Added explicit loading, true-empty, retryable error, and stale-operation protections for Technology results
+
 ## 3.5.0
 
 ### Changed
