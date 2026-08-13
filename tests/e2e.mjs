@@ -151,6 +151,20 @@ try {
   await layoutPage.waitForSelector(".target-focus-bar.collapsed");
   const collapsedGeometry = await layoutPage.evaluate(() => { const target=document.querySelector(".target-focus-bar").getBoundingClientRect(),nav=document.querySelector(".categories").getBoundingClientRect(),content=document.querySelector(".tool-content").getBoundingClientRect();return{targetHeight:target.height,targetBottom:target.bottom,navTop:nav.top,navBottom:nav.bottom,contentTop:content.top,contentHeight:content.height,overflow:document.body.scrollWidth>document.body.clientWidth,aria:document.querySelector(".focus-identity").getAttribute("aria-expanded")}});
   assert.ok(collapsedGeometry.targetHeight<expandedGeometry.targetHeight); assert.ok(collapsedGeometry.contentHeight>expandedGeometry.contentHeight); assert.ok(collapsedGeometry.navTop>=collapsedGeometry.targetBottom-1); assert.ok(collapsedGeometry.contentTop>=collapsedGeometry.navBottom-1); assert.equal(collapsedGeometry.overflow,false); assert.equal(collapsedGeometry.aria,"false");
+  const density = await layoutPage.evaluate(() => {
+    const nav=document.querySelector(".categories").getBoundingClientRect();
+    const subnav=document.querySelector(".tool-strip").getBoundingClientRect();
+    const title=document.querySelector(".tool-title").getBoundingClientRect();
+    const firstMetric=document.querySelector(".metrics .card").getBoundingClientRect();
+    const content=document.querySelector(".tool-content").getBoundingClientRect();
+    return {navHeight:nav.height,subnavHeight:subnav.height,resultGap:title.top-subnav.bottom,firstMetricBottom:firstMetric.bottom,contentHeight:content.height,tabRoles:[...document.querySelectorAll('.categories [role="tab"]')].length,selected:[...document.querySelectorAll('.categories [aria-selected="true"]')].length};
+  });
+  assert.ok(density.navHeight<=56,"main navigation stays within 56px");
+  assert.ok(density.subnavHeight<=44,"subnavigation stays within 44px");
+  assert.ok(density.resultGap<=20,"results begin close to subnavigation");
+  assert.ok(density.firstMetricBottom<=570,"first metric is fully above the fold");
+  assert.ok(density.contentHeight/(570-56)>=0.55,"tool output owns at least 55% of usable popup height");
+  assert.deepEqual({tabRoles:density.tabRoles,selected:density.selected},{tabRoles:4,selected:1});
   await layoutPage.screenshot({ path: "artifacts/e2e/v33-collapsed.png" });
   await layoutPage.hover(".focus-identity"); await layoutPage.waitForSelector(".target-focus-bar.peek");
   const peekGeometry=await layoutPage.$eval(".target-focus-bar",element=>element.getBoundingClientRect().height);assert.equal(peekGeometry,collapsedGeometry.targetHeight);
@@ -163,14 +177,23 @@ try {
   await layoutPage.screenshot({ path: "artifacts/e2e/v34-main-en.png" });
   await layoutPage.screenshot({ path: "artifacts/e2e/v34-focus-mode-font.png" });
   await layoutPage.screenshot({ path: "artifacts/e2e/v32-overview.png" });
+  await layoutPage.screenshot({ path: "artifacts/e2e/v35-overview.png" });
 
-  await layoutPage.evaluate(() => document.querySelectorAll(".categories button")[2]?.click());
+  await layoutPage.focus("#category-tab-snapshot");
+  await layoutPage.keyboard.press("ArrowRight");
+  await layoutPage.waitForFunction(()=>document.querySelector('#category-tab-web')?.getAttribute('aria-selected')==='true');
+  assert.equal(await layoutPage.evaluate(()=>document.activeElement?.id),"category-tab-web");
+  await layoutPage.screenshot({ path: "artifacts/e2e/v35-web.png" });
+
+  await layoutPage.click("#category-tab-page");
   await layoutPage.evaluate(() => document.querySelectorAll(".tool-strip button")[3]?.click());
   await layoutPage.waitForSelector(".technology-card");
   assert.ok(await layoutPage.$$eval(".technology-card", (items) => items.length >= 2));
   await layoutPage.screenshot({ path: "artifacts/e2e/v32-technology.png" });
+  await layoutPage.screenshot({ path: "artifacts/e2e/v35-page.png" });
 
-  await layoutPage.evaluate(() => document.querySelectorAll(".categories button")[3]?.click());
+  await layoutPage.click("#category-tab-utils");
+  await layoutPage.screenshot({ path: "artifacts/e2e/v35-tools.png" });
   await layoutPage.evaluate(() => document.querySelectorAll(".tool-strip button")[2]?.click());
   await layoutPage.waitForSelector(".admin-intro");
   await layoutPage.click(".admin-intro .run");
@@ -178,6 +201,7 @@ try {
   const adminClasses = await layoutPage.$$eval(".admin-result .status", (items) => items.map((item) => item.textContent));
   assert.ok(adminClasses.includes("LIKELY")); assert.ok(adminClasses.includes("PROTECTED")); assert.ok(adminClasses.includes("REDIRECT")); assert.ok(adminClasses.includes("NOT_FOUND"));
   await layoutPage.screenshot({ path: "artifacts/e2e/v32-admin-surface.png" });
+  await layoutPage.screenshot({ path: "artifacts/e2e/v35-tools-admin.png" });
 
   const positions = await layoutPage.evaluate(() => ({ nav: document.querySelector(".categories")?.getBoundingClientRect().top, content: document.querySelector(".tool-content")?.getBoundingClientRect().top }));
   await layoutPage.click(".target-focus-bar .focus-action:last-child");
@@ -192,6 +216,15 @@ try {
   await layoutPage.screenshot({ path: "artifacts/e2e/v33-turkish.png" });
   await layoutPage.screenshot({ path: "artifacts/e2e/v34-main-tr.png" });
   await layoutPage.screenshot({ path: "artifacts/e2e/v32-turkish.png" });
+  await layoutPage.screenshot({ path: "artifacts/e2e/v35-turkish.png" });
+  await layoutPage.evaluate(()=>{document.documentElement.dataset.surface="sidepanel"});
+  for(const [width,height] of [[320,560],[360,560],[420,560],[520,570],[640,570],[740,570],[800,600]]) {
+    await layoutPage.setViewport({width,height});
+    const responsive=await layoutPage.evaluate(()=>{const target=document.querySelector(".target-focus-bar").getBoundingClientRect(),nav=document.querySelector(".categories").getBoundingClientRect(),subnav=document.querySelector(".tool-strip").getBoundingClientRect();return{overflow:document.documentElement.scrollWidth>document.documentElement.clientWidth,targetBottom:target.bottom,navTop:nav.top,navHeight:nav.height,subnavHeight:subnav.height,labels:[...document.querySelectorAll(".categories button")].every(item=>item.scrollWidth<=item.clientWidth),buttons:[...document.querySelectorAll(".target-focus-bar button")].every(item=>item.getBoundingClientRect().width>0)}});
+    assert.equal(responsive.overflow,false,`horizontal overflow at ${width}`);assert.ok(responsive.navTop>=responsive.targetBottom-1);assert.ok(responsive.navHeight<=56);assert.ok(responsive.subnavHeight<=44);assert.equal(responsive.labels,true,`category label clipping at ${width}`);assert.equal(responsive.buttons,true);
+    if(width===320) await layoutPage.screenshot({path:"artifacts/e2e/v35-narrow.png"});
+  }
+  await layoutPage.setViewport({width:740,height:570});
   await layoutPage.evaluate(() => {
     const content = document.querySelector(".tool-content");
     if (!content) return;
@@ -227,8 +260,7 @@ try {
   });
   await layoutPage.screenshot({ path: "artifacts/e2e/layout-page-scrolled.png" });
   assert.equal(firstFailure(layoutErrors), undefined, firstFailure(layoutErrors));
-  for(const [width,height] of [[420,560],[520,570],[640,570],[740,570],[800,600]]) { await layoutPage.setViewport({width,height}); const responsive=await layoutPage.evaluate(()=>{const target=document.querySelector(".target-focus-bar").getBoundingClientRect(),nav=document.querySelector(".categories").getBoundingClientRect();return{overflow:document.body.scrollWidth>document.body.clientWidth,targetBottom:target.bottom,navTop:nav.top,buttons:[...document.querySelectorAll(".target-focus-bar button")].every(item=>item.getBoundingClientRect().width>0)}});assert.equal(responsive.overflow,false,`body horizontal overflow at ${width}`);assert.ok(responsive.navTop>=responsive.targetBottom-1);assert.equal(responsive.buttons,true);}
-  await layoutPage.setViewport({width:740,height:570}); await layoutPage.$eval(".tool-content",element=>element.scrollTop=0); await layoutPage.emulateMediaFeatures([{name:"prefers-reduced-motion",value:"reduce"}]); assert.equal(await layoutPage.$eval(".focus-signal",element=>getComputedStyle(element).animationName),"none"); await layoutPage.screenshot({path:"artifacts/e2e/v33-reduced-motion.png"});
+  await layoutPage.setViewport({width:740,height:570}); await layoutPage.$eval(".tool-content",element=>element.scrollTop=0); await layoutPage.emulateMediaFeatures([{name:"prefers-reduced-motion",value:"reduce"}]); assert.equal(await layoutPage.$eval(".target-focus-bar",element=>getComputedStyle(element).transitionDuration),"0s"); await layoutPage.screenshot({path:"artifacts/e2e/v33-reduced-motion.png"});
   console.log("Layout E2E: PASS");
 } finally {
   clearTimeout(hardTimeout);

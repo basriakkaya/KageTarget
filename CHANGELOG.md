@@ -1,5 +1,22 @@
 # Changelog
 
+## 3.5.0
+
+### Changed
+
+- Replaced oversized category cards with a compact, keyboard-accessible segmented navigation bar
+- Reduced navigation-to-result spacing so reconnaissance output appears earlier
+- Kept sub-navigation on one compact scrolling row across supported widths
+
+### Removed
+
+- Removed Focus Mode signal sweeps, clip-path effects, and decorative keyframe motion
+
+### Accessibility
+
+- Added tab semantics, selected states, roving tab focus, and arrow/Home/End navigation
+- Preserved reduced-motion behavior for the remaining restrained state transitions
+
 ## 3.4.0
 
 ### Added

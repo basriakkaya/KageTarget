@@ -70,7 +70,7 @@ export const tr = {
   about: "KageTarget Hakkında",
   aboutText:
     "Yerel keşif tarayıcı eklentisi. Hesap gerekmez. KageTarget bir backend servisi işletmez.",
-  version: "Sürüm 3.4.0",
+  version: "Sürüm 3.5.0",
   noTarget: "HEDEF YOK",
   noTargetBody: "Bir HTTP(S) sitesi açın ve Analiz Et düğmesine basın.",
   noResults: "Henüz sonuç yok.",

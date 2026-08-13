@@ -31,7 +31,8 @@ import { fetchRemotePage } from "../core/remote-page";
 import { detectTechnologies } from "../features/technology/engine";
 import { ADMIN_PATHS, scanAdminSurfaces, type AdminResult } from "../features/admin/admin-surface";
 import { targetPanelTransition, type TargetPanelState } from "../features/target-focus/state";
-type Category = "snapshot" | "web" | "page" | "utils";
+import { MainToolNavigation } from "./MainToolNavigation";
+import type { Category } from "./main-navigation";
 type Tool =
   | "snapshot"
   | "http"
@@ -59,11 +60,6 @@ const registry: { id: Tool; category: Category; key: TranslationKey }[] = [
   { id: "subnet", category: "utils", key: "subnet" },
   { id: "admin-surface", category: "utils", key: "adminSurface" },
 ];
-const Icon = ({ name }: { name: string }) => (
-  <span className="tool-icon" aria-hidden="true">
-    {{ snapshot: "⌾", web: "◎", page: "⌁", utils: "⌗" }[name] ?? "·"}
-  </span>
-);
 const Badge = ({
   children,
   className = "",
@@ -422,7 +418,6 @@ export function SidePanel() {
             )}
             <button className="manual-toggle" onClick={() => setManual(true)}><b>+</b> {t("manualTarget")}</button>
           </Card> : <section className={`target-focus-bar ${targetPanelState}`} aria-label={t("targetLocked")}>
-            <div className="focus-signal" aria-hidden="true" />
             <button className="focus-identity" aria-expanded="false" aria-controls="target-expanded-panel" onClick={()=>setTargetPanelState(targetPanelTransition(targetPanelState,"EXPAND"))} onMouseEnter={()=>setTargetPanelState(targetPanelTransition(targetPanelState,"PEEK_START"))} onMouseLeave={()=>setTargetPanelState(targetPanelTransition(targetPanelState,"PEEK_END"))} onFocus={()=>setTargetPanelState(targetPanelTransition(targetPanelState,"PEEK_START"))} onBlur={()=>setTargetPanelState(targetPanelTransition(targetPanelState,"PEEK_END"))}>
               <span>{t("targetLocked")}</span><strong title={target?.hostname}>{target?.hostname}</strong><small title={target?.normalizedUrl}>{target?.normalizedUrl}</small>
             </button>
@@ -430,34 +425,26 @@ export function SidePanel() {
             <button className="focus-action" aria-label={t("expand")} onClick={()=>setTargetPanelState("expanded")}>↗ {t("expand")}</button>
             <button className="focus-action" onClick={()=>setManual(true)}>+ {t("manualTarget")}</button>
           </section>}
-          <nav className="categories" aria-label="Tool categories">
-            {(["snapshot", "web", "page", "utils"] as Category[]).map((x) => (
-              <button
-                key={x}
-                className={category === x ? "active" : ""}
-                onClick={() => {
-                  setCategory(x);
-                  setTool(registry.find((y) => y.category === x)!.id);
-                }}
-              >
-                <Icon name={x} />
-                {t(x)}
-              </button>
-            ))}
-          </nav>
-          <div className="tool-strip">
+          <MainToolNavigation active={category} label={t} onSelect={(nextCategory) => {
+            setCategory(nextCategory);
+            setTool(registry.find((item) => item.category === nextCategory)!.id);
+          }} />
+          <div className="tool-strip" role="tablist" aria-label={`${t(category)} tools`}>
             {tools.map((x) => (
               <button
                 className={tool === x.id ? "active" : ""}
+                aria-controls="tool-content"
+                aria-selected={tool === x.id}
                 key={x.id}
                 onClick={() => setTool(x.id)}
+                role="tab"
               >
                 {t(x.key)}
               </button>
             ))}
           </div>
         </div>
-        <section className="tool-content" aria-live="polite">
+        <section className="tool-content" id="tool-content" aria-live="polite">
           <div className="tool-title">
             <div>
               <span>&gt; {target?.hostname ?? "NO_TARGET"}</span>

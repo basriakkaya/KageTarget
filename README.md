@@ -8,9 +8,9 @@ Fast browser-native web reconnaissance from a Chrome extension. KageTarget provi
 
 | Compact Action Popup | Technology Detection |
 |---|---|
-| ![KageTarget compact popup with Chakra Petch](docs/images/v34-main-en.png) | ![KageTarget technology detection](docs/images/v32-technology.png) |
+| ![KageTarget output-first popup](docs/images/v35-overview.png) | ![KageTarget technology detection](docs/images/v35-page.png) |
 
-![KageTarget Admin Surface Discovery](docs/images/v32-admin-surface.png)
+![KageTarget Admin Surface Discovery](docs/images/v35-tools-admin.png)
 
 The toolbar mark is optically sized for every supported Chrome icon size:
 
@@ -39,7 +39,7 @@ The toolbar mark is optically sized for every supported Chrome icon size:
 
 **Manual Target** lets a researcher inspect another explicit HTTP(S) target without changing the open tab. Live mode reads bounded metadata from the rendered page. Remote mode makes a credential-free request and parses up to 512 KB of HTML as an inert static document; it is labeled **STATIC HTML**.
 
-After successful analysis, Target Focus Mode converts the expanded target panel into a compact locked-target bar. This exposes more tool content above the fold while preserving expand and Manual Target controls. Its restrained signal transition respects reduced-motion preferences.
+After successful analysis, Target Focus Mode converts the expanded target panel into a compact locked-target bar. A single-row segmented category bar and compact tool tabs expose results earlier while preserving expand and Manual Target controls. Focus feedback uses only restrained color, border, and opacity transitions and respects reduced-motion preferences.
 
 ## Technology detection
 
@@ -76,7 +76,7 @@ npm run build
 npm run package
 ```
 
-`npm run package` creates `release/kagetarget-3.4.0.zip` with `manifest.json` at the archive root.
+`npm run package` creates `release/kagetarget-3.5.0.zip` with `manifest.json` at the archive root.
 
 ## Architecture
 

@@ -14,6 +14,12 @@ const forbidden = [
   "clipboardRead",
 ];
 const fail = [];
+const panelSource = await readFile(resolve("src/styles/panel.css"), "utf8");
+for (const pattern of [/@keyframes\b/i, /clip-path\s*:/i, /animation\s*:/i])
+  if (pattern.test(panelSource)) fail.push(`decorative motion CSS forbidden: ${pattern.source}`);
+const panelComponent = await readFile(resolve("src/sidepanel/SidePanel.tsx"), "utf8");
+for (const term of ["focus-signal", "glitch", "scanline", "chromatic", "distortion", "jitter", "flicker"])
+  if (panelComponent.toLowerCase().includes(term)) fail.push(`decorative effect forbidden: ${term}`);
 if (m.manifest_version !== 3) fail.push("manifest_version");
 if (!m.side_panel?.default_path) fail.push("side_panel");
 if (m.action?.default_popup !== "popup.html")

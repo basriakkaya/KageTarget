@@ -70,7 +70,7 @@ export const en = {
   about: "About KageTarget",
   aboutText:
     "Local reconnaissance browser extension. No account required. KageTarget does not operate a backend service.",
-  version: "Version 3.4.0",
+  version: "Version 3.5.0",
   noTarget: "NO TARGET",
   noTargetBody: "Open an HTTP(S) website and click Analyze.",
   noResults: "No results yet.",
