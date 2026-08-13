@@ -106,6 +106,22 @@ try {
   await popup.screenshot({ path: "artifacts/e2e/popup-boot.png" });
   console.log('popup boots and renders KageTarget: PASS');
 
+  const onboardingPage = async (language, grant) => {
+    const page=await browser.newPage(),requests=[]; page.on("request",request=>requests.push(request.url()));
+    await page.evaluateOnNewDocument((language,grant)=>{let attempt=0;Object.defineProperty(globalThis.chrome.permissions,"contains",{value:async()=>false});Object.defineProperty(globalThis.chrome.permissions,"request",{value:async()=>Array.isArray(grant)?grant[Math.min(attempt++,grant.length-1)]:grant});Object.defineProperty(globalThis.chrome.storage.local,"get",{value:async()=>({language,limitedMode:false})});Object.defineProperty(globalThis.chrome.storage.local,"set",{value:async()=>undefined});},language,grant);
+    await page.setViewport({width:740,height:570});await page.goto(`chrome-extension://${id}/popup.html`);await page.waitForSelector(".activation-view");await page.evaluate(()=>document.fonts.ready);
+    assert.equal(requests.some(url=>/^https?:/.test(url)&&!url.startsWith("http://127.0.0.1")),false,"no remote font request");
+    return page;
+  };
+  const onboardingEn=await onboardingPage("en",true);await onboardingEn.screenshot({path:"artifacts/e2e/v34-onboarding-en.png"});
+  const computedFonts=await onboardingEn.evaluate(()=>({body:getComputedStyle(document.body).fontFamily,button:getComputedStyle(document.querySelector(".activation-primary")).fontFamily,heading:getComputedStyle(document.querySelector(".activation-card h1")).fontFamily,wordmark:getComputedStyle(document.querySelector(".brand b")).fontFamily}));
+  for(const value of [computedFonts.body,computedFonts.button,computedFonts.heading])assert.ok(value.startsWith('"Chakra Petch"')||value.startsWith("Chakra Petch"));assert.equal(/Chakra Petch/.test(computedFonts.wordmark),false,"wordmark typography preserved");
+  for(const [width,height] of [[420,560],[520,570],[640,570],[740,570],[800,600]]){await onboardingEn.setViewport({width,height});const fit=await onboardingEn.evaluate(()=>({button:document.querySelector(".activation-primary").getBoundingClientRect().height,overflow:document.body.scrollWidth>document.body.clientWidth,card:document.querySelector(".activation-card").getBoundingClientRect().width,body:document.body.getBoundingClientRect().width}));assert.ok(fit.button>=40);assert.equal(fit.overflow,false);assert.ok(fit.card<=fit.body)}
+  await onboardingEn.setViewport({width:740,height:570});const onboardingClient=await onboardingEn.createCDPSession();await onboardingClient.send("Emulation.setPageScaleFactor",{pageScaleFactor:2});await onboardingEn.$eval(".activation-primary",element=>element.scrollIntoView({block:"center"}));assert.ok(await onboardingEn.$eval(".activation-primary",element=>element.getBoundingClientRect().height>0));await onboardingClient.send("Emulation.setPageScaleFactor",{pageScaleFactor:1});
+  await onboardingEn.click(".activation-primary");await onboardingEn.waitForSelector(".activation-view",{hidden:true});
+  const onboardingTr=await onboardingPage("tr",[false,true]);await onboardingTr.screenshot({path:"artifacts/e2e/v34-onboarding-tr.png"});await onboardingTr.click(".activation-primary");await onboardingTr.waitForSelector(".access-error");await onboardingTr.screenshot({path:"artifacts/e2e/v34-permission-denied.png"});await onboardingTr.click(".activation-primary");await onboardingTr.waitForSelector(".activation-view",{hidden:true});
+  const limitedPage=await onboardingPage("tr",false);await limitedPage.click(".activation-primary");await limitedPage.waitForSelector(".access-error");await limitedPage.click(".activation-skip");await limitedPage.waitForSelector(".activation-view",{hidden:true});await limitedPage.screenshot({path:"artifacts/e2e/v34-limited-mode.png"});
+
   const layoutPage = await browser.newPage();
   const layoutErrors = [];
   captureFailures(layoutPage, layoutErrors);
@@ -122,7 +138,11 @@ try {
   await layoutPage.setViewport({width:740,height:570});
   await layoutPage.goto(`chrome-extension://${id}/popup.html`);
   await layoutPage.waitForSelector(".tool-content");
+  assert.equal(await layoutPage.$(".activation-view"),null,"already granted users skip onboarding");
   await layoutPage.waitForFunction(() => document.querySelector(".target-card h1")?.textContent?.includes("127.0.0.1"));
+  await layoutPage.click(".manual-toggle");await layoutPage.waitForSelector(".manual-dialog input");const inputFont=await layoutPage.$eval(".manual-dialog input",element=>getComputedStyle(element).fontFamily);assert.ok(/Chakra Petch/.test(inputFont));await layoutPage.keyboard.press("Escape");
+  await layoutPage.click('.head-actions button[aria-label="Settings"]');await layoutPage.waitForSelector(".settings label");const settingsFont=await layoutPage.$eval(".settings label",element=>getComputedStyle(element).fontFamily);assert.ok(/Chakra Petch/.test(settingsFont));await layoutPage.click(".settings .close");
+  const uiFonts=await layoutPage.evaluate(()=>["body",".target-card h1",".categories button",".tool-title h2",".target-card .primary"].map(selector=>getComputedStyle(document.querySelector(selector)).fontFamily));assert.equal(uiFonts.every(value=>/Chakra Petch/.test(value)),true);
   const expandedGeometry = await layoutPage.evaluate(() => { const target=document.querySelector(".target-card").getBoundingClientRect(),nav=document.querySelector(".categories").getBoundingClientRect(),content=document.querySelector(".tool-content").getBoundingClientRect();return{targetHeight:target.height,targetBottom:target.bottom,navTop:nav.top,navBottom:nav.bottom,contentTop:content.top,contentHeight:content.height,overflow:document.body.scrollWidth>document.body.clientWidth}});
   assert.equal(expandedGeometry.overflow,false);
   await layoutPage.screenshot({ path: "artifacts/e2e/v33-expanded.png" });
@@ -140,6 +160,8 @@ try {
   await layoutPage.keyboard.press("Tab"); assert.ok(await layoutPage.evaluate(()=>document.activeElement instanceof HTMLElement));
   await layoutPage.click(".target-card .primary"); await layoutPage.waitForSelector(".target-focus-bar.collapsed");
   await layoutPage.screenshot({ path: "artifacts/e2e/v33-tools-visible.png" });
+  await layoutPage.screenshot({ path: "artifacts/e2e/v34-main-en.png" });
+  await layoutPage.screenshot({ path: "artifacts/e2e/v34-focus-mode-font.png" });
   await layoutPage.screenshot({ path: "artifacts/e2e/v32-overview.png" });
 
   await layoutPage.evaluate(() => document.querySelectorAll(".categories button")[2]?.click());
@@ -168,6 +190,7 @@ try {
   await layoutPage.click(".head-actions button");
   await layoutPage.waitForFunction(()=>document.querySelector(".head-actions button")?.textContent?.trim()==="TR");
   await layoutPage.screenshot({ path: "artifacts/e2e/v33-turkish.png" });
+  await layoutPage.screenshot({ path: "artifacts/e2e/v34-main-tr.png" });
   await layoutPage.screenshot({ path: "artifacts/e2e/v32-turkish.png" });
   await layoutPage.evaluate(() => {
     const content = document.querySelector(".tool-content");

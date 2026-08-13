@@ -1,4 +1,4 @@
-import { readFile, access } from "node:fs/promises";
+import { readFile, access, readdir } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 const root = resolve("dist");
 const m = JSON.parse(await readFile(resolve(root, "manifest.json"), "utf8"));
@@ -65,6 +65,15 @@ const productionText = await Promise.all(
 );
 if (productionText.some((text) => /localhost:|127\.0\.0\.1:|@vite\/client/.test(text)))
   fail.push("development runtime reference in production build");
+const assetNames = await readdir(resolve(root, "assets"));
+const fonts = assetNames.filter((name) => name.endsWith(".woff2"));
+for (const weight of [400, 500, 600, 700])
+  if (!fonts.some((name) => name.includes(`-${weight}-normal`))) fail.push(`missing Chakra Petch ${weight} font`);
+for (const name of assetNames) {
+  const contents = await readFile(resolve(root, "assets", name));
+  if (/fonts\.googleapis\.com|fonts\.gstatic\.com|@import\s+url\(["']?http/.test(contents.toString()))
+    fail.push(`remote font reference in ${name}`);
+}
 if (fail.length) {
   console.error(fail.join("\n"));
   process.exit(1);

@@ -9,7 +9,7 @@ import type {
   TargetMode,
 } from "../types";
 import { resolveActiveTarget } from "../core/active-target";
-import { parseTarget, permissionPattern } from "../core/target";
+import { parseTarget } from "../core/target";
 import { readPage, type PageData } from "../core/page";
 import { fetchHead, fetchTextLimited } from "../core/network";
 import {
@@ -21,8 +21,11 @@ import {
   clearAll,
   clearSession,
   loadLanguage,
+  loadLimitedMode,
   saveLanguage,
+  saveLimitedMode,
 } from "../core/storage";
+import { hasAllSiteAccess, requestFirstRunAccess, requestHostAccess, type PermissionState } from "../core/permissions";
 import { translate, type Language, type TranslationKey } from "../i18n";
 import { fetchRemotePage } from "../core/remote-page";
 import { detectTechnologies } from "../features/technology/engine";
@@ -126,6 +129,7 @@ export function SidePanel() {
   const [subnet, setSubnet] = useState("192.168.1.10/24");
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("all");
+  const [accessState, setAccessState] = useState<PermissionState>("checking");
   const [targetPanelState, setTargetPanelState] = useState<TargetPanelState>("expanded");
   const [adminResults, setAdminResults] = useState<AdminResult[]>([]);
   const [adminProgress, setAdminProgress] = useState<[number, number]>([0, ADMIN_PATHS.length]);
@@ -151,6 +155,7 @@ export function SidePanel() {
   };
   useEffect(() => {
     void loadLanguage().then(setLanguage);
+    void Promise.all([hasAllSiteAccess(),loadLimitedMode()]).then(([granted,limited])=>setAccessState(granted?"ready":limited?"limited":"needs-activation")).catch(()=>setAccessState("error"));
     void detect(true);
     const tab = () => {
       void detect(false);
@@ -186,6 +191,9 @@ export function SidePanel() {
     requestAnimationFrame(() => manualDialog.current?.querySelector<HTMLInputElement>("input")?.focus());
     return () => document.removeEventListener("keydown", key);
   }, [manual]);
+  const activateAccess=async()=>{setAccessState("requesting");try{const granted=await requestFirstRunAccess();if(granted){await saveLimitedMode(false);setAccessState("ready");}else setAccessState("denied");}catch{setAccessState("error")}};
+  const continueLimited=async()=>{await saveLimitedMode(true);setAccessState("limited")};
+  const openSettings=async()=>{try{setAccessState((await hasAllSiteAccess())?"ready":(await loadLimitedMode())?"limited":"needs-activation");}catch{setAccessState("error")}setSettings(true)};
   const reset = () => {
     op.current++;
     setPage(null);
@@ -223,14 +231,6 @@ export function SidePanel() {
       if (id === op.current) setLoading(false);
     }
   };
-  const permissionFor = async (value: TargetContext) =>
-    chrome.permissions.contains({ origins: [permissionPattern(value)] }).then(
-      (granted) =>
-        granted ||
-        chrome.permissions.request({
-          origins: [permissionPattern(value)],
-        }),
-    );
   const analyzeManual = async () => {
     try {
       const x = parseTarget(manualValue);
@@ -241,7 +241,7 @@ export function SidePanel() {
       setMode("REMOTE_URL");
       setPending(false);
       setLoading(true);
-      if (!(await permissionFor(x))) throw new Error("permission");
+      if (!(await requestHostAccess(x))) throw new Error("permission");
       const data = await fetchRemotePage(x);
       if (id === op.current) {
         setPage(data);
@@ -255,18 +255,7 @@ export function SidePanel() {
       setLoading(false);
     }
   };
-  const permission = async () =>
-    target
-      ? chrome.permissions
-          .contains({ origins: [permissionPattern(target)] })
-          .then(
-            (x) =>
-              x ||
-              chrome.permissions.request({
-                origins: [permissionPattern(target)],
-              }),
-          )
-      : false;
+  const permission = async () => target ? requestHostAccess(target) : false;
   const runHttp = async () => {
     if (!target) return;
     const id = ++op.current;
@@ -383,11 +372,21 @@ export function SidePanel() {
           >
             ⧉
           </button>
-          <button aria-label={t("settings")} onClick={() => setSettings(true)}>
+          <button aria-label={t("settings")} onClick={() => void openSettings()}>
             ⚙
           </button>
         </div>
       </header>
+      {!["ready","limited"].includes(accessState) && <section className="activation-view" aria-live="polite">
+        <div className="activation-card">
+          <div className="eyebrow">{t("requiredAccess")}</div><h1>{t("activateTitle")}</h1><p>{t("activateBody")}</p>
+          <ul><li>{t("accessPage")}</li><li>{t("accessTargets")}</li><li>{t("accessLocal")}</li></ul>
+          <div className="privacy-note"><b>{t("privacyPromise")}</b><p>{t("privacyPromiseBody")}</p></div>
+          {(accessState==="denied"||accessState==="error")&&<div className="access-error"><b>{t("accessDenied")}</b><p>{t("accessDeniedBody")}</p></div>}
+          <button className="primary activation-primary" disabled={accessState==="checking"||accessState==="requesting"} onClick={()=>void activateAccess()}>{accessState==="requesting"?t("activating"):accessState==="denied"||accessState==="error"?t("retry"):t("activate")}</button>
+          <button className="activation-skip" disabled={accessState==="checking"||accessState==="requesting"} onClick={()=>void continueLimited()}>{accessState==="denied"?t("continueLimited"):t("skipNow")}</button>
+        </div>
+      </section>}
       <main>
         <div className="panel-controls">
           {targetPanelState === "expanded" ? <Card id="target-expanded-panel" className="target-card compact-target target-expanded">
@@ -540,6 +539,8 @@ export function SidePanel() {
             <button className="danger" onClick={() => setConfirm(true)}>
               {t("clearAll")}
             </button>
+            <hr />
+            <h3>{t("access")}</h3><p>{t("hostAccess")}: <b>{accessState==="ready"?t("enabled"):t("notEnabled")}</b></p>{accessState!=="ready"&&<button onClick={()=>void activateAccess()}>{t("grantAccess")}</button>}
             <hr />
             <h3>{t("about")}</h3>
             <p>{t("aboutText")}</p>
