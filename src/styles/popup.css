@@ -1,8 +1,14 @@
 html[data-surface="popup"],
-html[data-surface="popup"] body,
+html[data-surface="popup"] body {
+  width: 740px;
+  height: 570px;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+}
 html[data-surface="popup"] #root {
-  width: min(740px, 100vw);
-  height: min(570px, 100vh);
+  width: 100%;
+  height: 100%;
   min-width: 0;
   min-height: 0;
   overflow: hidden;
