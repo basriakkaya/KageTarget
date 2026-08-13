@@ -131,6 +131,17 @@ main {
   overflow-y: auto;
   overscroll-behavior: contain;
 }
+.result-heading { display:flex; justify-content:space-between; align-items:flex-start; gap:10px; }
+.result-heading h3 { margin:3px 0; }
+.result-heading span { color:var(--muted); font:9px ui-monospace,monospace; text-transform:uppercase; }
+.technology-card details { margin-top:9px; color:var(--second); }
+.technology-card li { margin:5px 0; overflow-wrap:anywhere; }
+.admin-intro p { margin-top:0; }
+.safety { color:var(--warn); font-size:11px; margin:8px 0; }
+.admin-facts,.admin-summary { display:flex; flex-wrap:wrap; gap:6px; margin:8px 0; }
+.admin-facts span,.admin-summary span { border:1px solid var(--border); border-radius:999px; padding:5px 8px; font-size:10px; color:var(--second); }
+.admin-intro progress { width:100%; accent-color:var(--accent); }
+.admin-result code { display:block; overflow-wrap:anywhere; color:var(--second); }
 .card {
   border: 1px solid var(--border);
   border-radius: 10px;
@@ -147,6 +158,11 @@ main {
   position: relative;
   border-color: var(--active);
 }
+.compact-target { display:grid; grid-template-columns:minmax(0,1fr) auto; column-gap:10px; padding:10px 12px; margin-bottom:7px; }
+.compact-target > .eyebrow { grid-column:1/-1; margin-bottom:5px; }
+.compact-target > .target-line { min-width:0; }
+.compact-target > .primary { width:128px; min-height:42px; align-self:center; }
+.compact-target > .manual-toggle { grid-column:1/-1; height:32px; margin-top:6px; justify-content:center; }
 .eyebrow {
   font:
     700 9px ui-monospace,
@@ -557,6 +573,11 @@ pre {
   border-radius: 12px;
   background: var(--panel);
 }
+.manual-dialog { width:min(480px,calc(100vw - 24px)); }
+.manual-dialog > input { width:100%; height:42px; border:1px solid var(--border); border-radius:7px; background:var(--bg); padding:0 10px; margin:12px 0; }
+.manual-dialog > div { display:flex; justify-content:flex-end; gap:8px; }
+.manual-dialog > div button { min-width:100px; height:42px; border:1px solid var(--border); border-radius:7px; background:var(--panel2); }
+.manual-dialog > div .primary { width:auto; border-color:var(--accent); }
 .dialog h2 {
   font-size: 16px;
 }

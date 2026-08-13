@@ -6,6 +6,12 @@ html[data-surface="popup"] body {
   padding: 0;
   overflow: hidden;
 }
+@media (max-width: 519px) {
+  .compact-target { grid-template-columns:minmax(0,1fr) auto; }
+  .compact-target > .target-line { grid-column:1/-1; }
+  .compact-target > .primary { width:110px; }
+  .compact-target > .manual-toggle { grid-column:auto; height:42px; margin-top:0; }
+}
 html[data-surface="popup"] #root {
   width: 100%;
   height: 100%;

@@ -15,7 +15,6 @@ import { fetchHead, fetchTextLimited } from "../core/network";
 import {
   evaluateSecurityHeaders,
   parseCsp,
-  technologyHints,
 } from "../core/security";
 import { calculateSubnet } from "../core/subnet";
 import {
@@ -26,6 +25,8 @@ import {
 } from "../core/storage";
 import { translate, type Language, type TranslationKey } from "../i18n";
 import { fetchRemotePage } from "../core/remote-page";
+import { detectTechnologies } from "../features/technology/engine";
+import { ADMIN_PATHS, scanAdminSurfaces, type AdminResult } from "../features/admin/admin-surface";
 type Category = "snapshot" | "web" | "page" | "utils";
 type Tool =
   | "snapshot"
@@ -38,7 +39,8 @@ type Tool =
   | "forms"
   | "technology"
   | "url"
-  | "subnet";
+  | "subnet"
+  | "admin-surface";
 const registry: { id: Tool; category: Category; key: TranslationKey }[] = [
   { id: "snapshot", category: "snapshot", key: "quickSnapshot" },
   { id: "http", category: "web", key: "httpHeaders" },
@@ -51,6 +53,7 @@ const registry: { id: Tool; category: Category; key: TranslationKey }[] = [
   { id: "technology", category: "page", key: "technology" },
   { id: "url", category: "utils", key: "urlInspector" },
   { id: "subnet", category: "utils", key: "subnet" },
+  { id: "admin-surface", category: "utils", key: "adminSurface" },
 ];
 const Icon = ({ name }: { name: string }) => (
   <span className="tool-icon" aria-hidden="true">
@@ -120,6 +123,10 @@ export function SidePanel() {
   const [subnet, setSubnet] = useState("192.168.1.10/24");
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("all");
+  const [adminResults, setAdminResults] = useState<AdminResult[]>([]);
+  const [adminProgress, setAdminProgress] = useState<[number, number]>([0, ADMIN_PATHS.length]);
+  const adminAbort = useRef<AbortController | null>(null);
+  const manualDialog = useRef<HTMLDivElement | null>(null);
   const op = useRef(0);
   const detect = async (initial = false) => {
     const next = await resolveActiveTarget();
@@ -127,7 +134,14 @@ export function SidePanel() {
     if (initial) {
       setTarget(next);
       setManualValue(next?.normalizedUrl ?? "");
-    } else if (next?.normalizedUrl !== target?.normalizedUrl) setPending(true);
+    } else if (next?.normalizedUrl !== target?.normalizedUrl) {
+      adminAbort.current?.abort();
+      setAdminResults([]);
+      setPage(null);
+      setHttp(null);
+      setFiles([]);
+      setPending(true);
+    }
   };
   useEffect(() => {
     void loadLanguage().then(setLanguage);
@@ -150,6 +164,22 @@ export function SidePanel() {
     const x = setTimeout(() => setToast(""), 2200);
     return () => clearTimeout(x);
   }, [toast]);
+  useEffect(() => {
+    if (!manual) return;
+    const key = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setManual(false);
+      if (event.key === "Tab") {
+        const items = [...(manualDialog.current?.querySelectorAll<HTMLElement>('button,input') ?? [])];
+        if (!items.length) return;
+        const first = items[0], last = items[items.length - 1];
+        if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+        else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+      }
+    };
+    document.addEventListener("keydown", key);
+    requestAnimationFrame(() => manualDialog.current?.querySelector<HTMLInputElement>("input")?.focus());
+    return () => document.removeEventListener("keydown", key);
+  }, [manual]);
   const reset = () => {
     op.current++;
     setPage(null);
@@ -158,6 +188,10 @@ export function SidePanel() {
     setError("");
     setSearch("");
     setFilter("all");
+    adminAbort.current?.abort();
+    adminAbort.current = null;
+    setAdminResults([]);
+    setAdminProgress([0, ADMIN_PATHS.length]);
   };
   const analyze = async (next = active) => {
     if (!next) {
@@ -199,8 +233,10 @@ export function SidePanel() {
       if (!(await permissionFor(x))) throw new Error("permission");
       const data = await fetchRemotePage(x);
       if (id === op.current) setPage(data);
+      return true;
     } catch {
       setError(t("invalidTarget"));
+      return false;
     } finally {
       setLoading(false);
     }
@@ -266,6 +302,15 @@ export function SidePanel() {
       if (id === op.current) setLoading(false);
     }
   };
+  const runAdmin = async () => {
+    if (!target || loading) return;
+    setError("");
+    if (!(await permission())) { setError(t("permissionDenied")); return; }
+    const controller = new AbortController(); adminAbort.current = controller; setLoading(true); setAdminResults([]); setAdminProgress([0, ADMIN_PATHS.length]);
+    try { setAdminResults(await scanAdminSurfaces(target,{signal:controller.signal,onProgress:(done,total)=>setAdminProgress([done,total])})); }
+    catch { if (!controller.signal.aborted) setError(t("networkFailed")); }
+    finally { if (adminAbort.current===controller) { adminAbort.current=null; setLoading(false); } }
+  };
   const copy = (x: string) =>
     void navigator.clipboard.writeText(x).then(() => setToast(t("copied")));
   const changeLanguage = (x: Language) => {
@@ -330,7 +375,7 @@ export function SidePanel() {
       </header>
       <main>
         <div className="panel-controls">
-          <Card className="target-card">
+          <Card className="target-card compact-target">
             <div className="eyebrow">{pending ? t("newTab") : t("target")}</div>
             {target ? (
               <>
@@ -361,32 +406,7 @@ export function SidePanel() {
                 <p>{t("restrictedDetail")}</p>
               </>
             )}
-            <button
-              className="manual-toggle"
-              onClick={() => setManual(!manual)}
-            >
-              <span>
-                <b>+</b> {t("manualTarget")}
-              </span>
-              <span className={manual ? "chevron open" : "chevron"}>⌄</span>
-            </button>
-            {manual && (
-              <div className="manual-panel">
-                <div className="manual-label">{t("manualTarget")}</div>
-                <p>{t("manualTargetHint")}</p>
-                <div className="manual">
-                  <input
-                    value={manualValue}
-                    onChange={(e) => setManualValue(e.target.value)}
-                    placeholder={t("manualPlaceholder")}
-                    aria-label={t("manualTarget")}
-                  />
-                  <button onClick={() => void analyzeManual()}>
-                    {t("analyze")}
-                  </button>
-                </div>
-              </div>
-            )}
+            <button className="manual-toggle" onClick={() => setManual(true)}><b>+</b> {t("manualTarget")}</button>
           </Card>
           <nav className="categories" aria-label="Tool categories">
             {(["snapshot", "web", "page", "utils"] as Category[]).map((x) => (
@@ -456,10 +476,24 @@ export function SidePanel() {
               t,
               copy,
               mode,
+              runAdmin,
+              adminResults,
+              adminProgress,
+              cancelAdmin: () => adminAbort.current?.abort(),
             }}
           />
         </section>
       </main>
+      {manual && (
+        <div className="overlay manual-overlay" role="presentation" onMouseDown={() => setManual(false)}>
+          <div className="dialog manual-dialog" role="dialog" aria-modal="true" aria-labelledby="manual-title" ref={manualDialog} onMouseDown={(e)=>e.stopPropagation()}>
+            <button className="close" aria-label={t("cancel")} onClick={()=>setManual(false)}>×</button>
+            <h2 id="manual-title">{t("manualTarget")}</h2><p>{t("manualTargetHint")}</p>
+            <input value={manualValue} onChange={(e)=>setManualValue(e.target.value)} placeholder={t("manualPlaceholder")} aria-label={t("manualTarget")} />
+            <div><button onClick={()=>setManual(false)}>{t("cancel")}</button><button className="primary" onClick={()=>void analyzeManual().then((valid)=>valid&&setManual(false))}>{t("analyze")}</button></div>
+          </div>
+        </div>
+      )}
       {settings && (
         <div className="overlay" onMouseDown={() => setSettings(false)}>
           <aside className="settings" onMouseDown={(e) => e.stopPropagation()}>
@@ -527,6 +561,10 @@ type ViewProps = {
   t: T;
   copy: (x: string) => void;
   mode: TargetMode;
+  runAdmin: () => Promise<void>;
+  adminResults: AdminResult[];
+  adminProgress: [number, number];
+  cancelAdmin: () => void;
 };
 function ToolView(p: ViewProps) {
   if (!p.target) return <Empty text={p.t("noTargetBody")} />;
@@ -707,24 +745,23 @@ function ToolView(p: ViewProps) {
       </>
     );
   if (p.tool === "technology") {
-    const hints = technologyHints(
-      p.page!.snapshot,
-      p.page!.resources.map((x) => x.url),
-      p.http ?? undefined,
-    );
+    const hints = detectTechnologies({snapshot:p.page!.snapshot,resources:p.page!.resources,http:p.http??undefined,markers:p.page!.markers});
     return hints.length ? (
       <>
         {hints.map((x) => (
-          <Card key={x.name}>
-            <h3>{x.name}</h3>
-            <p>{x.source}</p>
-            <Badge>{x.confidence}</Badge>
+          <Card key={x.id} className="technology-card">
+            <div className="result-heading"><div><span>{x.category}</span><h3>{x.name}{x.version ? ` ${x.version}` : ""}</h3></div><Badge className={x.confidence.toLowerCase()}>{x.confidence}</Badge></div>
+            <details><summary>{p.t("evidence")}</summary><ul>{x.evidence.map(item=><li key={item}>{item}</li>)}</ul></details>
           </Card>
         ))}
       </>
     ) : (
       <Empty text={p.t("notDetected")} />
     );
+  }
+  if (p.tool === "admin-surface") {
+    const counts=Object.fromEntries(["LIKELY","PROTECTED","REDIRECT","UNLIKELY","NOT_FOUND","ERROR"].map(x=>[x,p.adminResults.filter(y=>y.classification===x).length]));
+    return <><Card className="admin-intro"><p>{p.t("adminDescription")}</p><div className="safety">{p.t("adminSafety")}</div><div className="admin-facts"><span>{p.t("sameOrigin")}</span><span>{p.t("noAuth")}</span><span>{ADMIN_PATHS.length} {p.t("paths")}</span></div>{p.loading?<><progress value={p.adminProgress[0]} max={p.adminProgress[1]}/><p>{p.t("checking")} {p.adminProgress[0]} / {p.adminProgress[1]}</p><button onClick={p.cancelAdmin}>{p.t("cancel")}</button></>:<button className="primary run" onClick={()=>void p.runAdmin()}>{p.t("runCheck")}</button>}</Card>{p.adminResults.length>0&&<><div className="admin-summary">{Object.entries(counts).filter(([,count])=>count).map(([key,count])=><span key={key}>{key} <b>{count}</b></span>)}</div>{p.adminResults.map(result=><Card key={result.path} className="admin-result"><div className="result-heading"><h3>{result.path}</h3><Badge>{result.classification}</Badge></div><code>{result.status??"—"} {result.finalUrl}</code><p>{result.evidence.join(" · ")}</p></Card>)}</>}</>;
   }
   if (p.tool === "url") {
     const u = new URL(p.target.normalizedUrl);

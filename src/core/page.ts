@@ -5,6 +5,7 @@ export interface PageData {
   resources: PageResource[];
   forms: PageForm[];
   limited: boolean;
+  markers: string[];
 }
 export function extractPage(): PageData {
   const origin = location.origin;
@@ -117,6 +118,14 @@ export function extractPage(): PageData {
     links,
     resources: resources.slice(0, 5000),
     forms,
+    markers: [
+      document.querySelector("#__NEXT_DATA__") ? "__NEXT_DATA__" : "",
+      document.querySelector("[data-reactroot]") ? "data-reactroot" : "",
+      document.querySelector("[ng-version]")
+        ? `ng-version:${document.querySelector("[ng-version]")?.getAttribute("ng-version")}`
+        : "",
+      document.querySelector("[data-v-app]") ? "data-v-app" : "",
+    ].filter(Boolean),
     limited:
       document.links.length > 5000 ||
       resources.length > 5000 ||

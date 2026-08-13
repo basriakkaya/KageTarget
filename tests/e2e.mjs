@@ -24,6 +24,11 @@ const browser = await puppeteer.launch({
   ],
 });
 const chromeProcess = browser.process();
+const hardTimeout = setTimeout(() => {
+  console.error("E2E hard timeout exceeded");
+  if (chromeProcess && !chromeProcess.killed) chromeProcess.kill("SIGTERM");
+  process.exitCode = 1;
+}, 60_000);
 
 const firstFailure = (errors) => errors.find(Boolean);
 const captureFailures = (page, errors) => {
@@ -75,7 +80,6 @@ try {
 
   const startupErrors = [];
   captureFailures(popup, startupErrors);
-  await popup.reload({ waitUntil: "domcontentloaded" });
   await popup.waitForSelector(".brand", { visible: true });
 
   const boot = await popup.evaluate(() => ({
@@ -105,9 +109,49 @@ try {
   const layoutPage = await browser.newPage();
   const layoutErrors = [];
   captureFailures(layoutPage, layoutErrors);
-  await layoutPage.setViewport({ width: 740, height: 570 });
+  await layoutPage.evaluateOnNewDocument((fixtureOrigin) => {
+    const pageData = { snapshot:{url:`${fixtureOrigin}/`,title:"KageTarget Fixture",canonical:`${fixtureOrigin}/canonical`,robots:"index, follow",generator:"WordPress 6.8",links:1,scripts:2,forms:1,iframes:0},links:[],resources:[{kind:"script",url:`${fixtureOrigin}/_next/static/app.js`,details:"classic"},{kind:"script",url:`${fixtureOrigin}/wp-content/plugins/test/app.js`,details:"classic"},{kind:"stylesheet",url:`${fixtureOrigin}/wp-includes/css/test.css`,details:"stylesheet"}],forms:[],markers:["__NEXT_DATA__"],limited:false };
+    Object.defineProperty(globalThis.chrome.tabs,"query",{value:async()=>[{id:77,url:`${fixtureOrigin}/`,active:true}]});
+    Object.defineProperty(globalThis.chrome.scripting,"executeScript",{value:async()=>[{result:pageData}]});
+    Object.defineProperty(globalThis.chrome.permissions,"contains",{value:async()=>true});
+    Object.defineProperty(globalThis.chrome.permissions,"request",{value:async()=>true});
+    const make=(url,status,body,final=url)=>{const response=new Response(body,{status,headers:{"content-type":"text/html",server:"nginx/1.27.0","cf-ray":"fixture"}});Object.defineProperty(response,"url",{value:final});return response};
+    globalThis.fetch=async(input,init)=>{const url=String(input),path=new URL(url).pathname;if(init?.method==="HEAD")return make(url,path.startsWith("/.kagetarget")?404:path.startsWith("/administrator")?403:404,"");if(path.startsWith("/.kagetarget"))return make(url,404,"");if(path==="/admin"||path==="/admin/"||path.startsWith("/admin/login"))return make(url,200,'<title>Administration Login</title><form><input type="password"></form>');if(path.startsWith("/administrator"))return make(url,403,"");if(path==="/login")return make(url,200,"<title>Sign in</title>",`${fixtureOrigin}/auth/signin`);return make(url,404,"")};
+  }, `http://127.0.0.1:${port}`);
+  await worker.worker().then((context) => context.evaluate(async () => globalThis.chrome.storage.local.set({ language: "en" })));
+  await layoutPage.setViewport({width:740,height:570});
   await layoutPage.goto(`chrome-extension://${id}/popup.html`);
   await layoutPage.waitForSelector(".tool-content");
+  await layoutPage.waitForFunction(() => document.querySelector(".target-card h1")?.textContent?.includes("127.0.0.1"));
+  await layoutPage.click(".target-card .primary");
+  await layoutPage.waitForSelector(".metrics");
+  await layoutPage.screenshot({ path: "artifacts/e2e/v32-overview.png" });
+
+  await layoutPage.evaluate(() => document.querySelectorAll(".categories button")[2]?.click());
+  await layoutPage.evaluate(() => document.querySelectorAll(".tool-strip button")[3]?.click());
+  await layoutPage.waitForSelector(".technology-card");
+  assert.ok(await layoutPage.$$eval(".technology-card", (items) => items.length >= 2));
+  await layoutPage.screenshot({ path: "artifacts/e2e/v32-technology.png" });
+
+  await layoutPage.evaluate(() => document.querySelectorAll(".categories button")[3]?.click());
+  await layoutPage.evaluate(() => document.querySelectorAll(".tool-strip button")[2]?.click());
+  await layoutPage.waitForSelector(".admin-intro");
+  await layoutPage.click(".admin-intro .run");
+  await layoutPage.waitForFunction(() => document.querySelectorAll(".admin-result").length === 24, { timeout: 20_000 });
+  const adminClasses = await layoutPage.$$eval(".admin-result .status", (items) => items.map((item) => item.textContent));
+  assert.ok(adminClasses.includes("LIKELY")); assert.ok(adminClasses.includes("PROTECTED")); assert.ok(adminClasses.includes("REDIRECT")); assert.ok(adminClasses.includes("NOT_FOUND"));
+  await layoutPage.screenshot({ path: "artifacts/e2e/v32-admin-surface.png" });
+
+  const positions = await layoutPage.evaluate(() => ({ nav: document.querySelector(".categories")?.getBoundingClientRect().top, content: document.querySelector(".tool-content")?.getBoundingClientRect().top }));
+  await layoutPage.click(".manual-toggle");
+  await layoutPage.waitForSelector(".manual-dialog");
+  const modalPositions = await layoutPage.evaluate(() => ({ nav: document.querySelector(".categories")?.getBoundingClientRect().top, content: document.querySelector(".tool-content")?.getBoundingClientRect().top }));
+  assert.deepEqual(modalPositions, positions);
+  await layoutPage.screenshot({ path: "artifacts/e2e/v32-manual-target.png" });
+  await layoutPage.keyboard.press("Escape");
+  await layoutPage.waitForSelector(".manual-dialog", { hidden: true });
+  await layoutPage.click(".head-actions button");
+  await layoutPage.screenshot({ path: "artifacts/e2e/v32-turkish.png" });
   await layoutPage.evaluate(() => {
     const content = document.querySelector(".tool-content");
     if (!content) return;
@@ -142,26 +186,10 @@ try {
     element.scrollTop = element.scrollHeight;
   });
   await layoutPage.screenshot({ path: "artifacts/e2e/layout-page-scrolled.png" });
-  await layoutPage.$eval(".manual-toggle", (element) => element.click());
-  await layoutPage.waitForSelector(".manual-panel");
-  const expanded = await layoutPage.evaluate(() => {
-    const target = document.querySelector(".target-card")?.getBoundingClientRect();
-    const nav = document.querySelector(".categories")?.getBoundingClientRect();
-    const content = document.querySelector(".tool-content")?.getBoundingClientRect();
-    if (!target || !nav || !content) throw new Error("expanded layout elements missing");
-    return {
-      targetBottom: target.bottom,
-      navTop: nav.top,
-      navBottom: nav.bottom,
-      contentTop: content.top,
-    };
-  });
-  assert.ok(expanded.targetBottom <= expanded.navTop + 1);
-  assert.ok(expanded.navBottom <= expanded.contentTop + 1);
-  await layoutPage.screenshot({ path: "artifacts/e2e/layout-manual-expanded.png" });
   assert.equal(firstFailure(layoutErrors), undefined, firstFailure(layoutErrors));
   console.log("Layout E2E: PASS");
 } finally {
+  clearTimeout(hardTimeout);
   await new Promise((resolveServer) => server.close(resolveServer));
   browser.disconnect();
   if (chromeProcess && !chromeProcess.killed) chromeProcess.kill("SIGTERM");

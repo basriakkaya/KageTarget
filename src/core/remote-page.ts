@@ -107,6 +107,14 @@ export function parseRemoteHtml(html: string, target: TargetContext): PageData {
     links,
     resources: resources.slice(0, 5000),
     forms,
+    markers: [
+      doc.querySelector("#__NEXT_DATA__") ? "__NEXT_DATA__" : "",
+      doc.querySelector("[data-reactroot]") ? "data-reactroot" : "",
+      doc.querySelector("[ng-version]")
+        ? `ng-version:${doc.querySelector("[ng-version]")?.getAttribute("ng-version")}`
+        : "",
+      doc.querySelector("[data-v-app]") ? "data-v-app" : "",
+    ].filter(Boolean),
     limited:
       doc.querySelectorAll("a[href]").length > 5000 ||
       resources.length > 5000 ||
