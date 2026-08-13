@@ -1,5 +1,20 @@
 # Changelog
 
+## 3.4.0
+
+### Added
+
+- First-run access onboarding for optional reconnaissance permissions
+
+### Changed
+
+- Migrated the extension UI to locally packaged Chakra Petch typography
+- Improved permission recovery and limited-mode states
+
+### Security
+
+- Kept target requests credential-free and did not add cookie access
+
 ## 3.3.0
 
 ### Changed

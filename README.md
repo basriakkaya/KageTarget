@@ -8,7 +8,7 @@ Fast browser-native web reconnaissance from a Chrome extension. KageTarget provi
 
 | Compact Action Popup | Technology Detection |
 |---|---|
-| ![KageTarget compact popup](docs/images/v32-overview.png) | ![KageTarget technology detection](docs/images/v32-technology.png) |
+| ![KageTarget compact popup with Chakra Petch](docs/images/v34-main-en.png) | ![KageTarget technology detection](docs/images/v32-technology.png) |
 
 ![KageTarget Admin Surface Discovery](docs/images/v32-admin-surface.png)
 
@@ -25,15 +25,17 @@ The toolbar mark is optically sized for every supported Chrome icon size:
 - URL Inspector, tested IPv4 Subnet Calculator, and Admin Surface Discovery
 - Compact target workflow and accessible Manual Target modal
 - Target Focus Mode that collapses the locked target after successful analysis
+- Locally packaged Chakra Petch typography and first-run optional access onboarding
 - Optional Side Panel, English/Turkish UI, Clear Session, and Clear All
 
 ## Usage
 
 1. Open a normal HTTP(S) website.
 2. Click the KageTarget toolbar icon.
-3. KageTarget detects the active tab.
-4. Click **Analyze**.
-5. Select Snapshot, Web, Page, or Utils.
+3. On first use, enable the optional website access required for direct HTTP(S) reconnaissance, or continue in limited mode.
+4. KageTarget detects the active tab.
+5. Click **Analyze**.
+6. Select Snapshot, Web, Page, or Utils.
 
 **Manual Target** lets a researcher inspect another explicit HTTP(S) target without changing the open tab. Live mode reads bounded metadata from the rendered page. Remote mode makes a credential-free request and parses up to 512 KB of HTML as an inert static document; it is labeled **STATIC HTML**.
 
@@ -74,7 +76,7 @@ npm run build
 npm run package
 ```
 
-`npm run package` creates `release/kagetarget-3.3.0.zip` with `manifest.json` at the archive root.
+`npm run package` creates `release/kagetarget-3.4.0.zip` with `manifest.json` at the archive root.
 
 ## Architecture
 

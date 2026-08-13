@@ -1,11 +1,13 @@
 # Permission rationale
 
-- `activeTab`: analyze the current page after explicit user interaction.
-- `scripting`: read bounded, non-sensitive page metadata for user-requested analysis.
-- `sidePanel`: display KageTarget beside the active page.
-- `storage`: store language preference locally and clear temporary session state. Sync storage is not used.
-- Optional `http://*/*` and `https://*/*`: request access at runtime for the single selected origin when the user runs a direct HTTP(S) check.
+| Permission | Why and when used | Data accessed | Persistence |
+|---|---|---|---|
+| `activeTab` | Inspect the current page after explicit user interaction | Bounded page metadata | Temporary active-tab grant |
+| `scripting` | Run the local metadata extractor in the selected active tab | Title, links, resource/form structure, and technology markers | Required API permission; no stored page history |
+| `sidePanel` | Open the optional Side Panel workspace | No additional website data | Required API permission |
+| `storage` | Save language and limited-mode preferences and clear extension session state | KageTarget-owned preferences only | Local until cleared; session data is temporary |
+| Optional `http://*/*`, `https://*/*` | Send direct user-triggered HTTP(S) reconnaissance checks after first-run activation or contextual recovery | Responses from the selected target | Chrome-managed optional host grant; revocable |
 
 KageTarget does not request history, cookies, bookmarks, browsing data, downloads, debugger, proxy, management, native messaging, or clipboard-read access.
 
-Version 3.2 requires no additional permissions. Admin Surface Discovery reuses optional access to the user-selected HTTP(S) origin, and Technology Detection uses already available page and response metadata.
+KageTarget checks the real Chrome permission state on startup. It does not request optional access during installation or popup mount; the request follows the user's activation CTA. Denial enables limited mode, while network tools retain contextual recovery.
