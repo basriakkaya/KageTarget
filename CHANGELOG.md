@@ -1,5 +1,13 @@
 # Changelog
 
+## 3.3.0
+
+### Changed
+
+- Added a compact post-analysis Target Focus Mode
+- Improved popup vertical space utilization after target lock
+- Added reduced-motion-aware target transitions and keyboard-accessible peek behavior
+
 ## 3.2.0
 
 ### Added

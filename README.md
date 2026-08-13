@@ -24,6 +24,7 @@ The toolbar mark is optically sized for every supported Chrome icon size:
 - Links, Resources, Forms, and Advanced Technology Detection
 - URL Inspector, tested IPv4 Subnet Calculator, and Admin Surface Discovery
 - Compact target workflow and accessible Manual Target modal
+- Target Focus Mode that collapses the locked target after successful analysis
 - Optional Side Panel, English/Turkish UI, Clear Session, and Clear All
 
 ## Usage
@@ -35,6 +36,8 @@ The toolbar mark is optically sized for every supported Chrome icon size:
 5. Select Snapshot, Web, Page, or Utils.
 
 **Manual Target** lets a researcher inspect another explicit HTTP(S) target without changing the open tab. Live mode reads bounded metadata from the rendered page. Remote mode makes a credential-free request and parses up to 512 KB of HTML as an inert static document; it is labeled **STATIC HTML**.
+
+After successful analysis, Target Focus Mode converts the expanded target panel into a compact locked-target bar. This exposes more tool content above the fold while preserving expand and Manual Target controls. Its restrained signal transition respects reduced-motion preferences.
 
 ## Technology detection
 
@@ -71,7 +74,7 @@ npm run build
 npm run package
 ```
 
-`npm run package` creates `release/kagetarget-3.2.0.zip` with `manifest.json` at the archive root.
+`npm run package` creates `release/kagetarget-3.3.0.zip` with `manifest.json` at the archive root.
 
 ## Architecture
 
