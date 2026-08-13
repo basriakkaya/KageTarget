@@ -1,0 +1,1 @@
+export function normalizeError(error:unknown):string {if(error instanceof DOMException&&error.name==='AbortError')return'The request timed out after 9 seconds.';if(error instanceof Error){if(/Failed to fetch/i.test(error.message))return'Unable to reach the target. It may be offline or blocking browser requests.';return error.message;}return'An unexpected error occurred.';}

@@ -1,0 +1,1 @@
+import{parseTarget}from'./target';import type{TargetContext}from'../types';export async function resolveActiveTarget():Promise<TargetContext|null>{const[t]=await chrome.tabs.query({active:true,lastFocusedWindow:true});if(!t?.id||!t.url)return null;try{return parseTarget(t.url,true,t.id)}catch{return null}}

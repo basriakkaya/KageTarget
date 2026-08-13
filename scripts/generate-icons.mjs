@@ -1,0 +1,8 @@
+import sharp from "sharp";
+import { readFile, mkdir } from "node:fs/promises";
+const sources={16:"src/assets/brand/kagetarget-mark-16.svg",24:"src/assets/brand/kagetarget-mark-24.svg",32:"src/assets/brand/kagetarget-mark.svg",48:"src/assets/brand/kagetarget-mark.svg",128:"src/assets/brand/kagetarget-mark.svg"};
+await mkdir("public/icons",{recursive:true});await mkdir("artifacts/brand",{recursive:true});
+for(const[sizeText,source]of Object.entries(sources)){const size=Number(sizeText);await sharp(await readFile(source),{density:384}).resize(size,size,{fit:"contain"}).png().toFile(`public/icons/icon${size}.png`)}
+await sharp("public/icons/icon128.png").toFile("webstore/icon-128.png");const tiles=[];
+for(const dark of[true,false]){const background=dark?"#1d232d":"#eef1f4",foreground=dark?"#e6edf3":"#18202a",parts=[`<rect width="900" height="230" fill="${background}"/>`,`<text x="30" y="40" fill="${foreground}" font-family="system-ui" font-size="18">${dark?"Dark":"Light"} toolbar simulation</text>`];let x=90;for(const size of[16,24,32,48,128]){const png=(await readFile(`public/icons/icon${size}.png`)).toString("base64");parts.push(`<image href="data:image/png;base64,${png}" x="${x}" y="${110-size/2}" width="${size}" height="${size}"/>`,`<text x="${x}" y="195" fill="${foreground}" font-family="monospace" font-size="13">${size}px</text>`);x+=size<48?120:175}tiles.push(`<g transform="translate(0 ${dark?0:230})">${parts.join("")}</g>`)}
+const sheet=`<svg xmlns="http://www.w3.org/2000/svg" width="900" height="460">${tiles.join("")}</svg>`;await sharp(Buffer.from(sheet)).png().toFile("artifacts/brand/icon-preview.png");console.log("Brand icons and preview generated");

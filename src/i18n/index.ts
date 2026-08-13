@@ -1,0 +1,1 @@
+import{en}from'./en';import{tr}from'./tr';export type Language='en'|'tr';export type TranslationKey=keyof typeof en;export const dictionaries={en,tr};export const translate=(language:Language,key:TranslationKey):string=>dictionaries[language][key];

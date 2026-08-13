@@ -1,0 +1,3 @@
+import type {PageLink} from '../types';
+export function categorizeLink(href:string,origin:string):PageLink['category']{if(href.startsWith('#'))return'hash';if(/^mailto:/i.test(href))return'mail';if(/^tel:/i.test(href))return'telephone';if(/^javascript:/i.test(href))return'javascript';try{const u=new URL(href,origin);if(!/^https?:$/.test(u.protocol))return'other';return u.origin===origin?'internal':'external';}catch{return'other';}}
+export function dedupeLinks<T extends {href:string}>(links:T[]):T[]{const seen=new Set<string>();return links.filter(x=>!seen.has(x.href)&&(seen.add(x.href),true));}
