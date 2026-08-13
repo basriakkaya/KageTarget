@@ -329,127 +329,136 @@ export function SidePanel() {
         </div>
       </header>
       <main>
-        <Card className="target-card">
-          <div className="eyebrow">{pending ? t("newTab") : t("target")}</div>
-          {target ? (
-            <>
-              <div className="target-line">
-                <div>
-                  <h1>{target.hostname}</h1>
-                  <p title={target.normalizedUrl}>{target.normalizedUrl}</p>
+        <div className="panel-controls">
+          <Card className="target-card">
+            <div className="eyebrow">{pending ? t("newTab") : t("target")}</div>
+            {target ? (
+              <>
+                <div className="target-line">
+                  <div>
+                    <h1>{target.hostname}</h1>
+                    <p title={target.normalizedUrl}>{target.normalizedUrl}</p>
+                  </div>
+                  <Badge>
+                    {mode === "LIVE_TAB" ? t("livePage") : t("staticHtml")}
+                  </Badge>
                 </div>
-                <Badge>
-                  {mode === "LIVE_TAB" ? t("livePage") : t("staticHtml")}
-                </Badge>
-              </div>
-              <button
-                className="primary"
-                disabled={loading}
-                onClick={() =>
-                  void (mode === "LIVE_TAB" ? analyze(active) : analyzeManual())
-                }
-              >
-                {loading ? t("analyzing") : t("analyze")}
-              </button>
-            </>
-          ) : (
-            <>
-              <h1>{t("noTarget")}</h1>
-              <p>{t("restrictedDetail")}</p>
-            </>
-          )}
-          <button className="manual-toggle" onClick={() => setManual(!manual)}>
-            <span>
-              <b>+</b> {t("manualTarget")}
-            </span>
-            <span className={manual ? "chevron open" : "chevron"}>⌄</span>
-          </button>
-          {manual && (
-            <div className="manual-panel">
-              <div className="manual-label">{t("manualTarget")}</div>
-              <p>{t("manualTargetHint")}</p>
-              <div className="manual">
-                <input
-                  value={manualValue}
-                  onChange={(e) => setManualValue(e.target.value)}
-                  placeholder={t("manualPlaceholder")}
-                  aria-label={t("manualTarget")}
-                />
-                <button onClick={() => void analyzeManual()}>
-                  {t("analyze")}
+                <button
+                  className="primary"
+                  disabled={loading}
+                  onClick={() =>
+                    void (mode === "LIVE_TAB"
+                      ? analyze(active)
+                      : analyzeManual())
+                  }
+                >
+                  {loading ? t("analyzing") : t("analyze")}
                 </button>
+              </>
+            ) : (
+              <>
+                <h1>{t("noTarget")}</h1>
+                <p>{t("restrictedDetail")}</p>
+              </>
+            )}
+            <button
+              className="manual-toggle"
+              onClick={() => setManual(!manual)}
+            >
+              <span>
+                <b>+</b> {t("manualTarget")}
+              </span>
+              <span className={manual ? "chevron open" : "chevron"}>⌄</span>
+            </button>
+            {manual && (
+              <div className="manual-panel">
+                <div className="manual-label">{t("manualTarget")}</div>
+                <p>{t("manualTargetHint")}</p>
+                <div className="manual">
+                  <input
+                    value={manualValue}
+                    onChange={(e) => setManualValue(e.target.value)}
+                    placeholder={t("manualPlaceholder")}
+                    aria-label={t("manualTarget")}
+                  />
+                  <button onClick={() => void analyzeManual()}>
+                    {t("analyze")}
+                  </button>
+                </div>
               </div>
-            </div>
-          )}
-        </Card>
-        <nav className="categories" aria-label="Tool categories">
-          {(["snapshot", "web", "page", "utils"] as Category[]).map((x) => (
-            <button
-              key={x}
-              className={category === x ? "active" : ""}
-              onClick={() => {
-                setCategory(x);
-                setTool(registry.find((y) => y.category === x)!.id);
-              }}
-            >
-              <Icon name={x} />
-              {t(x)}
-            </button>
-          ))}
-        </nav>
-        <div className="tool-strip">
-          {tools.map((x) => (
-            <button
-              className={tool === x.id ? "active" : ""}
-              key={x.id}
-              onClick={() => setTool(x.id)}
-            >
-              {t(x.key)}
-            </button>
-          ))}
-        </div>
-        <div className="tool-title">
-          <div>
-            <span>&gt; {target?.hostname ?? "NO_TARGET"}</span>
-            <h2>{t(registry.find((x) => x.id === tool)!.key)}</h2>
-          </div>
-          <Badge className={loading ? "running" : ""}>
-            {loading
-              ? t("running")
-              : error
-                ? t("error")
-                : page || http || files.length
-                  ? t("done")
-                  : t("ready")}
-          </Badge>
-        </div>
-        {error && (
-          <Card className="error">
-            <b>{t("error")}</b>
-            <p>{error}</p>
+            )}
           </Card>
-        )}
-        <ToolView
-          {...{
-            tool,
-            target,
-            page,
-            http,
-            files,
-            runHttp,
-            runFiles,
-            loading,
-            subnet,
-            setSubnet,
-            search,
-            setSearch,
-            filter,
-            setFilter,
-            t,
-            copy,
-            mode,
-          }}
-        />
+          <nav className="categories" aria-label="Tool categories">
+            {(["snapshot", "web", "page", "utils"] as Category[]).map((x) => (
+              <button
+                key={x}
+                className={category === x ? "active" : ""}
+                onClick={() => {
+                  setCategory(x);
+                  setTool(registry.find((y) => y.category === x)!.id);
+                }}
+              >
+                <Icon name={x} />
+                {t(x)}
+              </button>
+            ))}
+          </nav>
+          <div className="tool-strip">
+            {tools.map((x) => (
+              <button
+                className={tool === x.id ? "active" : ""}
+                key={x.id}
+                onClick={() => setTool(x.id)}
+              >
+                {t(x.key)}
+              </button>
+            ))}
+          </div>
+        </div>
+        <section className="tool-content" aria-live="polite">
+          <div className="tool-title">
+            <div>
+              <span>&gt; {target?.hostname ?? "NO_TARGET"}</span>
+              <h2>{t(registry.find((x) => x.id === tool)!.key)}</h2>
+            </div>
+            <Badge className={loading ? "running" : ""}>
+              {loading
+                ? t("running")
+                : error
+                  ? t("error")
+                  : page || http || files.length
+                    ? t("done")
+                    : t("ready")}
+            </Badge>
+          </div>
+          {error && (
+            <Card className="error">
+              <b>{t("error")}</b>
+              <p>{error}</p>
+            </Card>
+          )}
+          <ToolView
+            {...{
+              tool,
+              target,
+              page,
+              http,
+              files,
+              runHttp,
+              runFiles,
+              loading,
+              subnet,
+              setSubnet,
+              search,
+              setSearch,
+              filter,
+              setFilter,
+              t,
+              copy,
+              mode,
+            }}
+          />
+        </section>
       </main>
       {settings && (
         <div className="overlay" onMouseDown={() => setSettings(false)}>

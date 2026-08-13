@@ -61,7 +61,7 @@ npm run build
 npm run package
 ```
 
-`npm run package` creates `release/kagetarget-3.1.0.zip` with `manifest.json` at the archive root.
+`npm run package` creates `release/kagetarget-3.1.1.zip` with `manifest.json` at the archive root.
 
 ## Architecture
 
