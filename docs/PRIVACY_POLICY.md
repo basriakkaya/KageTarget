@@ -8,4 +8,8 @@ KageTarget may request optional access to HTTP(S) sites so user-initiated reconn
 
 Admin Surface Discovery runs only after explicit user action against a small built-in same-origin path set. It performs no authentication attempts and sends no results to KageTarget. Technology signatures are packaged locally and do not use a remote database.
 
+Wayback Intelligence sends the selected target hostname or root domain to the Internet Archive CDX service only when the user explicitly runs the Wayback tool. Internet Archive is an identified external provider; KageTarget has no backend and does not receive the query or its results. Wayback results remain session-only.
+
+Wayback Intelligence, yalnızca kullanıcı aracı açıkça çalıştırdığında seçili hedefin host veya kök alan adını Internet Archive CDX servisine gönderir. Sorgu ve sonuçlar KageTarget backend'ine gönderilmez; sonuçlar yalnızca mevcut oturumda tutulur.
+
 Language preference may be stored locally by Chrome. Clear Session removes temporary extension session data; Clear All removes KageTarget-owned local settings and session data. Neither action clears Chrome browsing history, website cookies, cache, passwords, downloads, or other extensions' data.

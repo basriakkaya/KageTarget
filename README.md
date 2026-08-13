@@ -19,6 +19,8 @@
 |---|---|
 | ![KageTarget settings](docs/images/v36-settings-open.png) | ![KageTarget scan progress](docs/images/v36-progress-running.png) |
 
+![KageTarget Wayback Intelligence](docs/images/v37-wayback-results.png)
+
 ## Türkçe
 
 KageTarget, Chrome için geliştirilmiş yerel bir web keşif eklentisidir. Açık sekmeyi veya elle girdiğiniz bir HTTP(S) adresini analiz eder. Ana arayüz kompakt Chrome popup’ıdır; isteğe bağlı Side Panel desteği de vardır.
@@ -30,6 +32,7 @@ KageTarget, Chrome için geliştirilmiş yerel bir web keşif eklentisidir. Aç�
 - `robots.txt`, `security.txt` ve `sitemap.xml` kontrolü
 - Bağlantı, kaynak ve form listeleri
 - Kanıtlarıyla birlikte teknoloji algılama
+- Internet Archive CDX üzerinden geçmiş URL keşfi, durum/tür/API/parametre filtreleri ve arşiv aksiyonları
 - URL inceleyici ve IPv4 alt ağ hesaplayıcı
 - Aynı kaynaktaki 24 yaygın yönetim/giriş yolunu kontrollü inceleme
 - Manuel hedef, Focus Mode, Türkçe/İngilizce arayüz ve isteğe bağlı Side Panel
@@ -77,6 +80,7 @@ KageTarget is a local web reconnaissance extension for Chrome. It analyzes the a
 - Checks for `robots.txt`, `security.txt`, and `sitemap.xml`
 - Link, resource, and form listings
 - Technology detection with visible evidence
+- Historical URL discovery through Internet Archive CDX with status, type, API, parameter, copy, and archive actions
 - URL inspector and IPv4 subnet calculator
 - Controlled checks for 24 common same-origin admin and login paths
 - Manual targets, Focus Mode, English/Turkish UI, and an optional Side Panel
@@ -121,6 +125,6 @@ npm run test:e2e
 npm run package
 ```
 
-`npm run package` creates `release/kagetarget-3.6.0.zip`.
+`npm run package` creates `release/kagetarget-3.7.0.zip`.
 
 Chrome Web Store preparation details are available in [Store Readiness](docs/STORE_READINESS.md).

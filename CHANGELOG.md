@@ -1,5 +1,17 @@
 # Changelog
 
+## 3.7.0
+
+### Added
+
+- Wayback Intelligence for user-triggered historical URL discovery through Internet Archive CDX
+- Status, resource type, API-like, parameterized, interesting-path, search, and sort filters
+- Copy-one, copy-filtered, copy-all, archived-capture actions, cancellation, session cache, and bounded pagination
+
+### Changed
+
+- Updated privacy and permission documentation for user-triggered external intelligence queries
+
 ## 3.6.0
 
 ### Changed

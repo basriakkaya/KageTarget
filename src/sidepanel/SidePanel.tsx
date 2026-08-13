@@ -32,6 +32,7 @@ import { detectTechnologies, type TechnologyMatch } from "../features/technology
 import { ADMIN_PATHS, scanAdminSurfaces, type AdminResult } from "../features/admin/admin-surface";
 import { targetPanelTransition, type TargetPanelState } from "../features/target-focus/state";
 import { MainToolNavigation } from "./MainToolNavigation";
+import { WaybackTool } from "../features/wayback/WaybackTool";
 import type { Category } from "./main-navigation";
 type Tool =
   | "snapshot"
@@ -43,6 +44,7 @@ type Tool =
   | "resources"
   | "forms"
   | "technology"
+  | "wayback"
   | "url"
   | "subnet"
   | "admin-surface";
@@ -56,6 +58,7 @@ const registry: { id: Tool; category: Category; key: TranslationKey }[] = [
   { id: "resources", category: "page", key: "resources" },
   { id: "forms", category: "page", key: "forms" },
   { id: "technology", category: "page", key: "technology" },
+  { id: "wayback", category: "page", key: "wayback" },
   { id: "url", category: "utils", key: "urlInspector" },
   { id: "subnet", category: "utils", key: "subnet" },
   { id: "admin-surface", category: "utils", key: "adminSurface" },
@@ -827,6 +830,7 @@ function ToolView(p: ViewProps) {
       <Empty text={p.t("notDetected")} />
     );
   }
+  if(p.tool==="wayback")return <WaybackTool target={p.target} t={p.t} onCopy={p.copy}/>;
   if (p.tool === "admin-surface") {
     const counts=Object.fromEntries(["LIKELY","PROTECTED","REDIRECT","UNLIKELY","NOT_FOUND","ERROR"].map(x=>[x,p.adminResults.filter(y=>y.classification===x).length]));
     const done=p.adminProgress[0],total=p.adminProgress[1],percent=Math.round(done/total*100),remaining=Math.max(0,total-done);

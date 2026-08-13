@@ -34,6 +34,8 @@ for (const x of ["activeTab", "scripting", "sidePanel", "storage"])
 for (const x of ["http://*/*", "https://*/*"])
   if (!m.optional_host_permissions?.includes(x))
     fail.push(`missing optional ${x}`);
+if (!m.optional_host_permissions?.includes("https://web.archive.org/*"))
+  fail.push("missing optional Wayback origin");
 const paths = [
   m.background?.service_worker,
   m.side_panel?.default_path,

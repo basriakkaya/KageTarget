@@ -4,6 +4,7 @@
 - [x] Manifest V3 with Action Popup primary UI and optional Side Panel
 - [x] Compact user-initiated reconnaissance workflow
 - [x] Permissions minimized and documented
+- [x] User-triggered Internet Archive CDX disclosure and optional origin documented
 - [x] First-run activation explains optional host access and supports limited mode
 - [x] Privacy policy prepared
 - [x] No remote executable code or remote assets

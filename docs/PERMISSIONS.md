@@ -7,7 +7,10 @@
 | `sidePanel` | Open the optional Side Panel workspace | No additional website data | Required API permission |
 | `storage` | Save language and limited-mode preferences and clear extension session state | KageTarget-owned preferences only | Local until cleared; session data is temporary |
 | Optional `http://*/*`, `https://*/*` | Send direct user-triggered HTTP(S) reconnaissance checks after first-run activation or contextual recovery | Responses from the selected target | Chrome-managed optional host grant; revocable |
+| Optional `https://web.archive.org/*` | Query Internet Archive CDX only after the user runs Wayback Intelligence | Selected target hostname/domain and public archive response | Chrome-managed optional host grant; revocable; results are session-only |
 
 KageTarget does not request history, cookies, bookmarks, browsing data, downloads, debugger, proxy, management, native messaging, or clipboard-read access.
 
 KageTarget checks the real Chrome permission state on startup. It does not request optional access during installation or popup mount; the request follows the user's activation CTA. Denial enables limited mode, while network tools retain contextual recovery.
+
+Wayback access is requested separately from its tool surface. Opening KageTarget, changing targets, or selecting Wayback does not send an Internet Archive request.
