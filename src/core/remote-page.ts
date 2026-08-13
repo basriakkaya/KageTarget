@@ -109,6 +109,7 @@ export function parseRemoteHtml(html: string, target: TargetContext): PageData {
     forms,
     markers: [
       doc.querySelector("#__NEXT_DATA__") ? "__NEXT_DATA__" : "",
+      doc.querySelector("#__next") ? "id:__next" : "",
       doc.querySelector("[data-reactroot]") ? "data-reactroot" : "",
       doc.querySelector("[ng-version]")
         ? `ng-version:${doc.querySelector("[ng-version]")?.getAttribute("ng-version")}`

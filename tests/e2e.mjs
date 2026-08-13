@@ -130,10 +130,10 @@ try {
     Object.defineProperty(globalThis.chrome.tabs,"query",{value:async()=>[{id:77,url:`${fixtureOrigin}/`,active:true}]});
     const emptyPageData={...pageData,snapshot:{...pageData.snapshot,generator:null},resources:[],markers:[]};
     Object.defineProperty(globalThis.chrome.scripting,"executeScript",{value:async()=>[{result:globalThis.__ktEmptyTechnology?emptyPageData:pageData}]});
-    Object.defineProperty(globalThis.chrome.permissions,"contains",{value:async()=>true});
+    Object.defineProperty(globalThis.chrome.permissions,"contains",{value:async()=>!globalThis.__ktNoPermission});
     Object.defineProperty(globalThis.chrome.permissions,"request",{value:async()=>true});
     const make=(url,status,body,final=url)=>{const response=new Response(body,{status,headers:{"content-type":"text/html",server:"nginx/1.27.0","cf-ray":"fixture"}});Object.defineProperty(response,"url",{value:final});return response};
-    globalThis.fetch=async(input,init)=>{const url=String(input),path=new URL(url).pathname;if(init?.method==="HEAD"){await new Promise(resolve=>setTimeout(resolve,25));if(globalThis.__ktTechnologyFailure&&path==="/")throw new Error("technology fixture failure");return make(url,path.startsWith("/.kagetarget")?404:path.startsWith("/administrator")?403:404,"")}if(path.startsWith("/.kagetarget"))return make(url,404,"");if(path==="/admin"||path==="/admin/"||path.startsWith("/admin/login"))return make(url,200,'<title>Administration Login</title><form><input type="password"></form>');if(path.startsWith("/administrator"))return make(url,403,"");if(path==="/login")return make(url,200,"<title>Sign in</title>",`${fixtureOrigin}/auth/signin`);return make(url,404,"")};
+    globalThis.fetch=async(input,init)=>{const url=String(input),path=new URL(url).pathname;if(init?.method==="HEAD"){await new Promise(resolve=>setTimeout(resolve,path==="/"?250:10));if(globalThis.__ktTechnologyFailure&&path==="/")throw new Error("technology fixture failure");return make(url,path.startsWith("/.kagetarget")?404:path.startsWith("/administrator")?403:404,"")}if(path.startsWith("/.kagetarget"))return make(url,404,"");if(path==="/admin"||path==="/admin/"||path.startsWith("/admin/login"))return make(url,200,'<title>Administration Login</title><form><input type="password"></form>');if(path.startsWith("/administrator"))return make(url,403,"");if(path==="/login")return make(url,200,"<title>Sign in</title>",`${fixtureOrigin}/auth/signin`);return make(url,404,"")};
   }, `http://127.0.0.1:${port}`);
   await worker.worker().then((context) => context.evaluate(async () => globalThis.chrome.storage.local.set({ language: "en" })));
   await layoutPage.setViewport({width:740,height:570});
@@ -190,6 +190,8 @@ try {
 
   await layoutPage.click("#category-tab-page");
   await layoutPage.evaluate(() => document.querySelectorAll(".tool-strip button")[3]?.click());
+  await layoutPage.waitForSelector(".technology-enrichment");
+  assert.ok(await layoutPage.$$eval(".technology-card",items=>items.length>=2),"page detections render before header request completes");
   await layoutPage.waitForSelector(".technology-card");
   assert.ok(await layoutPage.$$eval(".technology-card", (items) => items.length >= 2));
   assert.ok(await layoutPage.$$eval(".technology-card details li",items=>items.length>=2));
@@ -198,6 +200,7 @@ try {
   await layoutPage.screenshot({ path: "artifacts/e2e/v35-page.png" });
   await layoutPage.screenshot({ path: "artifacts/e2e/v36-top-nav-page.png" });
   await layoutPage.screenshot({ path: "artifacts/e2e/v36-technology-working.png" });
+  await layoutPage.evaluate(()=>{globalThis.__ktNoPermission=true});await layoutPage.evaluate(() => document.querySelectorAll(".tool-strip button")[3]?.click());await layoutPage.waitForSelector(".technology-notice");assert.ok(await layoutPage.$(".technology-card"),"page detections remain visible without header permission");await layoutPage.evaluate(()=>{globalThis.__ktNoPermission=false});
   await layoutPage.evaluate(()=>{globalThis.__ktEmptyTechnology=true;globalThis.__ktTechnologyFailure=true});
   await layoutPage.click(".focus-action");await layoutPage.waitForSelector(".target-expanded");await layoutPage.click(".target-card .primary");await layoutPage.waitForSelector(".target-focus-bar.collapsed");
   await layoutPage.evaluate(() => document.querySelectorAll(".tool-strip button")[3]?.click());await layoutPage.waitForSelector(".technology-state.error");assert.ok(await layoutPage.$(".technology-state .secondary-action"));

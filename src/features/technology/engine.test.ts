@@ -9,4 +9,5 @@ describe("TechnologyEngine",()=>{
   it("detects Cloudflare and nginx from exact headers",()=>{const http={status:200,statusText:"OK",finalUrl:"https://x.test",headers:[["server","cloudflare"],["cf-ray","abc"]] as [string,string][]};expect(detectTechnologies({http}).find(x=>x.name==="Cloudflare")?.confidence).toBe("High");const nginx={...http,headers:[["server","nginx/1.27.0"]] as [string,string][]};expect(detectTechnologies({http:nginx})).toContainEqual(expect.objectContaining({name:"nginx",version:"1.27.0",confidence:"High"}))});
   it("does not detect React from a generic root id",()=>expect(detectTechnologies({snapshot:snapshot(null),markers:["id:root"]})).toEqual([]));
   it("returns a true empty result when no supported evidence exists",()=>expect(detectTechnologies({snapshot:snapshot(null),resources:[],markers:[]})).toEqual([]));
+  it("recognizes modern Next.js and Vue root markers",()=>{expect(detectTechnologies({markers:["id:__next"]})).toContainEqual(expect.objectContaining({name:"Next.js"}));expect(detectTechnologies({markers:["data-v-app"]})).toContainEqual(expect.objectContaining({name:"Vue"}))});
 });

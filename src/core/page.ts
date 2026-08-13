@@ -120,6 +120,7 @@ export function extractPage(): PageData {
     forms,
     markers: [
       document.querySelector("#__NEXT_DATA__") ? "__NEXT_DATA__" : "",
+      document.querySelector("#__next") ? "id:__next" : "",
       document.querySelector("[data-reactroot]") ? "data-reactroot" : "",
       document.querySelector("[ng-version]")
         ? `ng-version:${document.querySelector("[ng-version]")?.getAttribute("ng-version")}`

@@ -25,7 +25,7 @@ import {
   saveLanguage,
   saveLimitedMode,
 } from "../core/storage";
-import { hasAllSiteAccess, requestFirstRunAccess, requestHostAccess, type PermissionState } from "../core/permissions";
+import { hasAllSiteAccess, hasHostAccess, requestFirstRunAccess, requestHostAccess, type PermissionState } from "../core/permissions";
 import { translate, type Language, type TranslationKey } from "../i18n";
 import { fetchRemotePage } from "../core/remote-page";
 import { detectTechnologies, type TechnologyMatch } from "../features/technology/engine";
@@ -336,14 +336,15 @@ export function SidePanel() {
     finally { if (adminAbort.current===controller) { adminAbort.current=null; setLoading(false); } }
   };
   const cancelAdmin=()=>{adminAbort.current?.abort();setAdminStatus("cancelled")};
-  const runTechnology=async()=>{
+  const runTechnology=async(requestAccess=false)=>{
     if(!target||!page)return;
     const requestedTarget=target.normalizedUrl,id=++op.current;
     setTechnologyStatus("running");setTechnologyError("");
     const pageMatches=detectTechnologies({snapshot:page.snapshot,resources:page.resources,markers:page.markers,http:http??undefined});
     setTechnologyResults(pageMatches);
     try{
-      if(!(await permission()))throw new Error("permission");
+      const granted=requestAccess?await requestHostAccess(target):await hasHostAccess(target);
+      if(!granted)throw new Error("permission");
       const headers=await fetchHead(target);
       if(id!==op.current||target.normalizedUrl!==requestedTarget)return;
       setHttp(headers);
@@ -351,7 +352,7 @@ export function SidePanel() {
       setTechnologyStatus("completed");
     }catch(error){
       if(id!==op.current)return;
-      if(pageMatches.length){setTechnologyResults(pageMatches);setTechnologyStatus("completed");}
+      if(pageMatches.length){setTechnologyResults(pageMatches);setTechnologyStatus("completed");setTechnologyError(error instanceof Error&&error.message==="permission"?t("technologyHeadersPermission"):t("technologyHeadersFailed"));}
       else {setTechnologyStatus("error");setTechnologyError(error instanceof Error&&error.message==="permission"?t("permissionDenied"):t("technologyFailed"));}
     }
   };
@@ -540,7 +541,7 @@ export function SidePanel() {
               technologyStatus,
               technologyResults,
               technologyError,
-              runTechnology,
+              runTechnology: () => runTechnology(true),
             }}
           />
         </section>
@@ -808,11 +809,13 @@ function ToolView(p: ViewProps) {
       </>
     );
   if (p.tool === "technology") {
-    if(p.technologyStatus==="running")return <Card className="technology-state"><div className="progress-status"><span>{p.t("technologyAnalyzing")}</span><Badge className="running">{p.t("running")}</Badge></div><p>{p.t("technologyAnalyzingHint")}</p><div className="indeterminate-track" aria-hidden="true"><span /></div></Card>;
+    if(p.technologyStatus==="running"&&!p.technologyResults.length)return <Card className="technology-state"><div className="progress-status"><span>{p.t("technologyAnalyzing")}</span><Badge className="running">{p.t("running")}</Badge></div><p>{p.t("technologyAnalyzingHint")}</p><div className="indeterminate-track" aria-hidden="true"><span /></div></Card>;
     if(p.technologyStatus==="error")return <Card className="technology-state error"><b>{p.t("technologyError")}</b><p>{p.technologyError}</p><button className="secondary-action" onClick={()=>void p.runTechnology()}>{p.t("retry")}</button></Card>;
     if(p.technologyStatus==="idle")return <Card className="technology-state"><p>{p.t("technologyReady")}</p><button className="primary" onClick={()=>void p.runTechnology()}>{p.t("detectTechnology")}</button></Card>;
     return p.technologyResults.length ? (
       <>
+        {p.technologyStatus==="running"&&<Card className="technology-enrichment"><div className="progress-status"><span>{p.t("technologyEnriching")}</span><Badge className="running">{p.t("running")}</Badge></div><div className="indeterminate-track" aria-hidden="true"><span /></div></Card>}
+        {p.technologyStatus==="completed"&&p.technologyError&&<Card className="technology-notice"><p>{p.technologyError}</p><button className="secondary-action" onClick={()=>void p.runTechnology()}>{p.t("retryHeaders")}</button></Card>}
         {p.technologyResults.map((x) => (
           <Card key={x.id} className="technology-card">
             <div className="result-heading"><div><span>{x.category}</span><h3>{x.name}{x.version ? ` ${x.version}` : ""}</h3></div><Badge className={x.confidence.toLowerCase()}>{x.confidence}</Badge></div>
