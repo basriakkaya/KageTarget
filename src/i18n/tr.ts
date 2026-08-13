@@ -35,6 +35,9 @@ export const tr = {
   runCheck: "KONTROL ET",
   checking: "Kontrol ediliyor",
   evidence: "Kanıt",
+  expand: "Genişlet",
+  reAnalyze: "Yeniden Analiz Et",
+  targetLocked: "Hedef kilitlendi",
   clearSession: "Oturumu temizle",
   settings: "Ayarlar",
   language: "Dil",
@@ -47,7 +50,7 @@ export const tr = {
   about: "KageTarget Hakkında",
   aboutText:
     "Yerel keşif tarayıcı eklentisi. Hesap gerekmez. KageTarget bir backend servisi işletmez.",
-  version: "Sürüm 3.2.0",
+  version: "Sürüm 3.3.0",
   noTarget: "HEDEF YOK",
   noTargetBody: "Bir HTTP(S) sitesi açın ve Analiz Et düğmesine basın.",
   noResults: "Henüz sonuç yok.",

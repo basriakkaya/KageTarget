@@ -27,6 +27,7 @@ import { translate, type Language, type TranslationKey } from "../i18n";
 import { fetchRemotePage } from "../core/remote-page";
 import { detectTechnologies } from "../features/technology/engine";
 import { ADMIN_PATHS, scanAdminSurfaces, type AdminResult } from "../features/admin/admin-surface";
+import { targetPanelTransition, type TargetPanelState } from "../features/target-focus/state";
 type Category = "snapshot" | "web" | "page" | "utils";
 type Tool =
   | "snapshot"
@@ -70,10 +71,12 @@ const Badge = ({
 const Card = ({
   children,
   className = "",
+  id,
 }: {
   children: ReactNode;
   className?: string;
-}) => <section className={`card ${className}`}>{children}</section>;
+  id?: string;
+}) => <section id={id} className={`card ${className}`}>{children}</section>;
 const KV = ({
   rows,
   copyLabel,
@@ -123,6 +126,7 @@ export function SidePanel() {
   const [subnet, setSubnet] = useState("192.168.1.10/24");
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("all");
+  const [targetPanelState, setTargetPanelState] = useState<TargetPanelState>("expanded");
   const [adminResults, setAdminResults] = useState<AdminResult[]>([]);
   const [adminProgress, setAdminProgress] = useState<[number, number]>([0, ADMIN_PATHS.length]);
   const adminAbort = useRef<AbortController | null>(null);
@@ -135,6 +139,8 @@ export function SidePanel() {
       setTarget(next);
       setManualValue(next?.normalizedUrl ?? "");
     } else if (next?.normalizedUrl !== target?.normalizedUrl) {
+      op.current++;
+      setTargetPanelState("expanded");
       adminAbort.current?.abort();
       setAdminResults([]);
       setPage(null);
@@ -199,6 +205,7 @@ export function SidePanel() {
       return;
     }
     reset();
+    setTargetPanelState("expanded");
     const id = ++op.current;
     setTarget(next);
     setMode("LIVE_TAB");
@@ -206,7 +213,10 @@ export function SidePanel() {
     setLoading(true);
     try {
       const data = await readPage(next.sourceTabId!);
-      if (id === op.current) setPage(data);
+      if (id === op.current) {
+        setPage(data);
+        setTargetPanelState("collapsed");
+      }
     } catch {
       if (id === op.current) setError(t("scriptFailed"));
     } finally {
@@ -225,6 +235,7 @@ export function SidePanel() {
     try {
       const x = parseTarget(manualValue);
       reset();
+      setTargetPanelState("expanded");
       const id = ++op.current;
       setTarget(x);
       setMode("REMOTE_URL");
@@ -232,7 +243,10 @@ export function SidePanel() {
       setLoading(true);
       if (!(await permissionFor(x))) throw new Error("permission");
       const data = await fetchRemotePage(x);
-      if (id === op.current) setPage(data);
+      if (id === op.current) {
+        setPage(data);
+        setTargetPanelState("collapsed");
+      }
       return true;
     } catch {
       setError(t("invalidTarget"));
@@ -321,6 +335,7 @@ export function SidePanel() {
     reset();
     setTarget(active);
     setMode("LIVE_TAB");
+    setTargetPanelState("expanded");
     await clearSession();
     setToast(t("sessionCleared"));
   };
@@ -375,7 +390,7 @@ export function SidePanel() {
       </header>
       <main>
         <div className="panel-controls">
-          <Card className="target-card compact-target">
+          {targetPanelState === "expanded" ? <Card id="target-expanded-panel" className="target-card compact-target target-expanded">
             <div className="eyebrow">{pending ? t("newTab") : t("target")}</div>
             {target ? (
               <>
@@ -407,7 +422,15 @@ export function SidePanel() {
               </>
             )}
             <button className="manual-toggle" onClick={() => setManual(true)}><b>+</b> {t("manualTarget")}</button>
-          </Card>
+          </Card> : <section className={`target-focus-bar ${targetPanelState}`} aria-label={t("targetLocked")}>
+            <div className="focus-signal" aria-hidden="true" />
+            <button className="focus-identity" aria-expanded="false" aria-controls="target-expanded-panel" onClick={()=>setTargetPanelState(targetPanelTransition(targetPanelState,"EXPAND"))} onMouseEnter={()=>setTargetPanelState(targetPanelTransition(targetPanelState,"PEEK_START"))} onMouseLeave={()=>setTargetPanelState(targetPanelTransition(targetPanelState,"PEEK_END"))} onFocus={()=>setTargetPanelState(targetPanelTransition(targetPanelState,"PEEK_START"))} onBlur={()=>setTargetPanelState(targetPanelTransition(targetPanelState,"PEEK_END"))}>
+              <span>{t("targetLocked")}</span><strong title={target?.hostname}>{target?.hostname}</strong><small title={target?.normalizedUrl}>{target?.normalizedUrl}</small>
+            </button>
+            <Badge>{mode === "LIVE_TAB" ? t("livePage") : t("staticHtml")}</Badge>
+            <button className="focus-action" aria-label={t("expand")} onClick={()=>setTargetPanelState("expanded")}>↗ {t("expand")}</button>
+            <button className="focus-action" onClick={()=>setManual(true)}>+ {t("manualTarget")}</button>
+          </section>}
           <nav className="categories" aria-label="Tool categories">
             {(["snapshot", "web", "page", "utils"] as Category[]).map((x) => (
               <button

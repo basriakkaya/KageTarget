@@ -11,6 +11,9 @@ html[data-surface="popup"] body {
   .compact-target > .target-line { grid-column:1/-1; }
   .compact-target > .primary { width:110px; }
   .compact-target > .manual-toggle { grid-column:auto; height:42px; margin-top:0; }
+  .target-focus-bar { grid-template-columns:minmax(0,1fr) auto auto; }
+  .target-focus-bar > .status { display:none; }
+  .focus-action { padding:0 6px; }
 }
 html[data-surface="popup"] #root {
   width: 100%;
